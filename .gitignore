@@ -20,3 +20,6 @@
 # Saletes d'emacs
 *~
 *#
+
+#cmake
+trunk/build
