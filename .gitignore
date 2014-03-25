@@ -16,3 +16,7 @@
 *.exe
 *.out
 *.app
+
+# Saletes d'emacs
+*~
+*#
