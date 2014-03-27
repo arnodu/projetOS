@@ -6,7 +6,7 @@
  *     mais attention aux inconvénient des tableaux de threads
  *     (consommation mémoire, cout d'allocation, ...).
  */
-typedef void * thread_t;
+typedef struct thread_t* thread_t;
 
 /* recuperer l'identifiant du thread courant.
  */
@@ -35,6 +35,6 @@ extern int thread_join(thread_t thread, void **retval);
  * cet attribut dans votre interface tant que votre thread_exit()
  * n'est pas correctement implémenté (il ne doit jamais retourner).
  */
-extern void thread_exit(void *retval) __attribute__ ((__noreturn__));
+extern void thread_exit(void *retval); //__attribute__ ((__noreturn__));
 
 #endif /* __THREAD_H__ */
