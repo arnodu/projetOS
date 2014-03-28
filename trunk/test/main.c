@@ -2,47 +2,42 @@
 #include <stdlib.h>
 #include <ucontext.h> /* ne compile pas avec -std=c89 ou -std=c99 */
 
-ucontext_t thread_main, thread1, scheduler;
+#include <valgrind/valgrind.h>
 
-void thread1_f(int numero)
+void func(int numero)
 {
-  printf("thread1:j'affiche le numéro %d\n", numero);
-}
-
-void scheduler_f()
-{
-	printf("Entre dans le sheduler 1:\n");
-	printf("\tscheduler decide d'executer main\n");
-	swapcontext(&scheduler,&thread_main);
-	printf("Entre dans le sheduler 2:\n");
-	printf("\tscheduler decide d'executer func\n");
-	swapcontext(&scheduler,&thread1);
-	printf("Entre dans le sheduler 3:\n");
-	printf("\tscheduler decide d'executer main\n");
-	swapcontext(&scheduler,&thread_main);
-	printf("le scheduler termine\n");
+  printf("j'affiche le numéro %d\n", numero);
 }
 
 int main() {
-	getcontext(&thread_main);
-	getcontext(&scheduler); /* initialisation de uc avec valeurs coherentes
+  ucontext_t uc, previous;
+
+  getcontext(&uc); /* initialisation de uc avec valeurs coherentes
 		    * (pour éviter de tout remplit a la main ci-dessous) */
 
-	scheduler.uc_stack.ss_size = 64*1024;
-	scheduler.uc_stack.ss_sp = malloc(thread1.uc_stack.ss_size);
-	scheduler.uc_link = NULL;
-	makecontext(&scheduler, (void (*)(void)) scheduler_f, 1, 34);
-	getcontext(&thread1); /* initialisation de uc avec valeurs coherentes
-		    * (pour éviter de tout remplit a la main ci-dessous) */
+  uc.uc_stack.ss_size = 64*1024;
+  void* stack_uc = malloc(uc.uc_stack.ss_size);
+  uc.uc_stack.ss_sp = stack_uc;
+  int valgrind_stackid1 = VALGRIND_STACK_REGISTER(uc.uc_stack.ss_sp,
+			uc.uc_stack.ss_sp + uc.uc_stack.ss_size);
+  uc.uc_link = &previous;
+  makecontext(&uc, (void (*)(void)) func, 1, 34);
 
-	thread1.uc_stack.ss_size = 64*1024;
-	thread1.uc_stack.ss_sp = malloc(thread1.uc_stack.ss_size);
-	thread1.uc_link = &scheduler;
-	makecontext(&thread1, (void (*)(void)) thread1_f, 1, 34);
-	printf("Swap 1: main->sheduler\n");
-	swapcontext(&thread_main,&scheduler);
-	printf("Swap 2: main->sheduler\n");
-	swapcontext(&thread_main,&scheduler);
-	printf("main:fin\n");
-	return 0;
+  printf("je suis dans le main\n");
+  swapcontext(&previous, &uc);
+  printf("je suis revenu dans le main\n");
+
+  uc.uc_stack.ss_size = 64*1024;
+
+  free(stack_uc);
+  stack_uc=malloc(uc.uc_stack.ss_size);
+  uc.uc_stack.ss_sp = stack_uc;
+  uc.uc_link = NULL;
+  makecontext(&uc, (void (*)(void)) func, 1, 57);
+
+  printf("je suis dans le main\n");
+  setcontext(&uc);
+  printf("je ne reviens jamais ici\n");
+  return 0;
 }
+

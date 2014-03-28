@@ -1,3 +1,5 @@
+#define thread pthread
+
 #include "thread.h"
 #include <stdio.h>
 #include <assert.h>
