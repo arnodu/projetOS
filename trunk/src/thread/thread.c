@@ -10,13 +10,10 @@
 
 #define THREAD_STACK_SIZE 64*1024
 
-//le scheduler utilisé par tous les threads
-static scheduler sched = NULL;
-
 thread_t thread_self(void)
 {
-	sched_init(&sched);
-	return sched_runningThread(sched);
+	sched_init();
+	return sched_runningThread();
 }
 
 //Initialise un thread vide
@@ -50,7 +47,7 @@ thread_t thread_s_init()
 	thread->context.uc_link = NULL;
 #ifndef NDEBUG
 	//Pour valgrind
-	VALGRIND_STACK_REGISTER(thread->context.uc_stack.ss_sp,
+	thread->valgrind_stackid = VALGRIND_STACK_REGISTER(thread->context.uc_stack.ss_sp,
 							thread->context.uc_stack.ss_sp + thread->context.uc_stack.ss_size);
  #endif
 
@@ -59,18 +56,18 @@ thread_t thread_s_init()
 
 int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 {
-	sched_init(&sched);
-	if(sched == NULL)
+	int res=sched_init();
+	if(res != 0)//Erreur: sched_init
 		return -1;
 	*newthread = thread_s_init();
 	if(*newthread == NULL)//Erreur : thread_s_init
 		return -1;
 
-	sched_makecontext(sched, *newthread, func, funcarg);
+	sched_makecontext(*newthread, func, funcarg);
 	//makecontext(&(*newthread)->context, (void (*)(void)) func, 1, funcarg);
 	(*newthread)->status = READY;
 
-	int res = sched_addThread(sched, *newthread);
+	res = sched_addThread(*newthread);
 	if(res != 0)//Erreur: sched_addThread
 		return -1;
 
@@ -79,12 +76,12 @@ int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 
 int thread_yield(void)
 {
-	sched_init(&sched);
+	sched_init();
 	int res;
-	res = sched_addThread(sched, thread_self());
+	res = sched_addThread(thread_self());
 	if(res != 0)//Erreur: sched_addThread
 		return -1;
-	res = sched_schedule(sched);
+	res = sched_schedule();
 	if(res != 0)//Erreur: sched_addThread
 		return -1;
 	return 0;
@@ -92,7 +89,7 @@ int thread_yield(void)
 
 int thread_join(thread_t thread, void **retval)
 {
-	sched_init(&sched);
+	sched_init();
 	while(thread->status != TERMINATED)
 	{
 		if(0!=thread_yield())
@@ -103,18 +100,23 @@ int thread_join(thread_t thread, void **retval)
 	{
 		*retval=thread->retval;
 	}
+	#ifndef NDEBUG
+	VALGRIND_STACK_DEREGISTER(thread->valgrind_stackid);
+#endif
+	free(thread->stack);
+	free(thread);
 
 	return 0;
 }
 
 void thread_exit(void *retval)
 {
-	sched_init(&sched);
+	sched_init();
 	//Modification du statut du thread courant
 	thread_t thread = thread_self();
 	thread->retval = retval;
 	thread->status = TERMINATED;
 
 	//On de mande au scheduler de changer de thread sans rajouter celui ci
-	sched_schedule(sched);
+	sched_schedule();
 }

@@ -7,8 +7,11 @@ struct _thread_t{
 	ucontext_t 	context;
 	void* 		stack;
 	void* 		retval;
-	enum {INIT, READY, TERMINATED}
+	enum {INIT, READY, RUNNING, TERMINATED}
 				status;
+#ifndef DEBUG
+	int valgrind_stackid;
+#endif
 };
 
 //Initialise un thread vide
