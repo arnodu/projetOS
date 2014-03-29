@@ -18,10 +18,31 @@ include_directories("${PROJECT_INCLUDE_DIR}")
 add_library(thread
 	${thread_files})
 
-add_executable("test1"
+add_executable("main"
 	test/main.c)
-add_executable("test2"
+
+add_executable("test"
 	test/test.c)
-target_link_libraries("test2"
+target_link_libraries("test"
         thread)
+
+add_executable("01-main"
+	test/01-main.c)
+target_link_libraries("01-main"
+        thread)
+
+add_executable("02-switch"
+	test/02-switch.c)
+target_link_libraries("02-switch"
+        thread)
+
+
+add_executable("51-fibonacci"
+	test/51-fibonacci.c)
+target_link_libraries("51-fibonacci"
+        thread)
+
+
+
+
 

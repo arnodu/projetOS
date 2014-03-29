@@ -18,9 +18,7 @@ int sched_init(scheduler* sched);
 //NULL si erreur
 thread_t sched_runningThread(scheduler sched);
 
-//Retourne le contexte sur lequel il faut switcher quand un context termine
-//NULL si erreur
-ucontext_t* sched_onTerminateContext(scheduler sched);
+int sched_makecontext(scheduler sched, thread_t thread, void* (*func)(void*), void* funcarg);
 
 //Ajoute une tache à ordonnanceur
 //0 si tout s'est bien passé
