@@ -1,3 +1,5 @@
+#ifndef USE_PTHREAD
+
 #include <stdlib.h>
 #include <ucontext.h>
 #include <assert.h>
@@ -106,3 +108,5 @@ int sched_schedule()
 	sched_switchToThread(thread);
 	return 0;
 }
+
+#endif

@@ -1,3 +1,4 @@
+#ifndef USE_PTHREAD
 #include <stdlib.h>
 
 #include "thread.h"
@@ -120,3 +121,5 @@ void thread_exit(void *retval)
 	//On de mande au scheduler de changer de thread sans rajouter celui ci
 	sched_schedule();
 }
+
+#endif
