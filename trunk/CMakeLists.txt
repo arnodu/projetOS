@@ -12,6 +12,10 @@ file(GLOB_RECURSE thread_files
        "src/*.h"
        "include/thread.h")
 
+include(CTest)
+enable_testing()
+
+
 set(PROJECT_INCLUDE_DIR "include")
 include_directories("${PROJECT_INCLUDE_DIR}")
 
@@ -36,13 +40,46 @@ add_executable("02-switch"
 target_link_libraries("02-switch"
         thread)
 
-
 add_executable("51-fibonacci"
 	test/51-fibonacci.c)
 target_link_libraries("51-fibonacci"
         thread)
 
+add_executable("11-join"
+  test/11-join.c)
+target_link_libraries("11-join"
+        thread)
 
+add_executable("12-join-main"
+  test/12-join-main.c)
+target_link_libraries("12-join-main"
+        thread)
+
+add_executable("21-create-many"
+  test/21-create-many.c)
+target_link_libraries("21-create-many"
+        thread)
+
+add_test("main_test"
+  ${EXECUTABLE_OUTPUT_PATH}/01-main)
+
+add_test("switch_test"
+  ${EXECUTABLE_OUTPUT_PATH}/02-switch)
+
+add_test("fibo_10_test"
+  ${EXECUTABLE_OUTPUT_PATH}/51-fibonacci 10)
+
+add_test("join_test"
+  ${EXECUTABLE_OUTPUT_PATH}/11-join)
+
+add_test("join_main_test"
+  ${EXECUTABLE_OUTPUT_PATH}/12-join-main)
+
+add_test("create-many-test"
+  ${EXECUTABLE_OUTPUT_PATH}/21-create-many)
+
+add_test("fibo_10_test"
+  ${EXECUTABLE_OUTPUT_PATH}/51-fibonacci 10)
 
 
 

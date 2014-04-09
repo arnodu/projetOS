@@ -42,7 +42,7 @@ int sched_init()
 	sched->running->retval = NULL;
 	getcontext(&sched->running->context);
 	sched->running->status = RUNNING;
-
+	// INITIALISER rq_begin et rq_end
 	sched->main_thread=sched->running;
 
 	//Enregistrement de la fonction de libération à la fermeture du programme
@@ -87,7 +87,7 @@ int sched_addThread(thread_t thread)
 //Passe du thread courant au thread donné
 static void sched_switchToThread(thread_t thread)
 {
-	assert(thread->status == READY);
+	assert(thread->status == READY || (thread == sched->running && thread->status == RUNNING));
 	assert(sched->running->status == RUNNING || sched->running->status == TERMINATED);
 	thread_t oldRunning = sched->running;
 	sched->running = thread;
