@@ -30,6 +30,7 @@ void sched_free()
 
 //Initialise le scheduler
 //Retourne 0 si succes
+// TODO : !!!!! Il faut INITIALISER rq_begin et rq_end ()
 int sched_init()
 {
 	if(sched!=NULL)
@@ -42,7 +43,9 @@ int sched_init()
 	sched->running->retval = NULL;
 	getcontext(&sched->running->context);
 	sched->running->status = RUNNING;
-	// INITIALISER rq_begin et rq_end
+	sched->running->stack = NULL;
+	sched->running->context.uc_link = NULL;
+
 	sched->main_thread=sched->running;
 
 	//Enregistrement de la fonction de libération à la fermeture du programme
@@ -64,6 +67,9 @@ static void thread_f(void* (*func)(void*), void* funcarg)
 int sched_makecontext(thread_t thread, void* (*func)(void*), void* funcarg)
 {
 	makecontext(&thread->context, (void (*)(void)) thread_f,  2, func, funcarg);
+	// ATTENTION :  Makecontext retourne void... pourquoi la notre retourne un int?
+	// Ajouté return 0
+	return 0;
 }
 
 //Retourne le thread qui est actuellement éxécuté
@@ -102,6 +108,8 @@ static void sched_switchToThread(thread_t thread)
 int sched_schedule()
 {
 	//TODO: replacer par une vraie file
+	if(rq_begin==rq_end)
+		exit(0);
 	thread_t thread = runqueue[rq_begin++];
 	if(rq_begin>=RQ_SIZE)
 		rq_begin = 0;

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(projetOS)
 
 set(CUSTOM_FLAGS "" CACHE FILEPATH "User defined compilation flags")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CUSTOM_FLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${CUSTOM_FLAGS}")
 
 # Write binaries to bin/
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
@@ -60,6 +60,22 @@ add_executable("21-create-many"
 target_link_libraries("21-create-many"
         thread)
 
+add_executable("22-create-many-recursive"
+  test/22-create-many-recursive.c)
+target_link_libraries("22-create-many-recursive"
+        thread)
+
+add_executable("31-switch-many"
+  test/31-switch-many.c)
+target_link_libraries("31-switch-many"
+        thread)
+
+add_executable("32-switch-many-join"
+  test/32-switch-many-join.c)
+target_link_libraries("32-switch-many-join"
+        thread)
+
+####### Adding test rules. ###########
 add_test("main_test"
   ${EXECUTABLE_OUTPUT_PATH}/01-main)
 
@@ -77,6 +93,15 @@ add_test("join_main_test"
 
 add_test("create-many-test"
   ${EXECUTABLE_OUTPUT_PATH}/21-create-many)
+
+add_test("create-many-recursive-test"
+  ${EXECUTABLE_OUTPUT_PATH}/22-create-many-recursive)
+
+add_test("switch-many-test"
+  ${EXECUTABLE_OUTPUT_PATH}/31-switch-many)
+
+add_test("switch-many-join-test"
+  ${EXECUTABLE_OUTPUT_PATH}/32-switch-many-join 10 10)
 
 add_test("fibo_10_test"
   ${EXECUTABLE_OUTPUT_PATH}/51-fibonacci 10)

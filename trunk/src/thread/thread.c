@@ -4,6 +4,7 @@
 #include "thread.h"
 #include "thread_t.h"
 #include "scheduler.h"
+#include <stdio.h>
 
 #ifndef NDEBUG
 #include <valgrind/valgrind.h>
@@ -101,20 +102,26 @@ int thread_join(thread_t thread, void **retval)
 	{
 		*retval=thread->retval;
 	}
-	#ifndef NDEBUG
+	if(thread->stack!=NULL)//si c'est pas le main
+	{
+#ifndef NDEBUG
 	VALGRIND_STACK_DEREGISTER(thread->valgrind_stackid);
 #endif
-	free(thread->stack);
-	free(thread);
+		free(thread->stack);
+		free(thread);
+	}
 
 	return 0;
 }
 
 void thread_exit(void *retval)
 {
+	fprintf(stderr, "Avant sched_init\n");
 	sched_init();
+	fprintf(stderr, "Apres sched_init\n");
 	//Modification du statut du thread courant
 	thread_t thread = thread_self();
+	fprintf(stderr, "Apres thread_self\n");
 	thread->retval = retval;
 	thread->status = TERMINATED;
 
