@@ -56,6 +56,24 @@ thread_t thread_s_init()
 	return thread;
 }
 
+//Fonction appelée à la création d'un thread
+//Wrap la fonction donnée en paramètre pour que la fonction retourne bien avec thread_exit
+static void thread_f(void* (*func)(void*), void* funcarg)
+{
+	void* res = func(funcarg);
+	thread_exit(res);
+}
+
+//fait makecontext sur le contexte du thread donné pour qu'il utilise la fonction func
+//si func termine, thread_exit est appelé avec la valeur de retour (voir thread_f)
+int _makecontext(thread_t thread, void* (*func)(void*), void* funcarg)
+{
+	makecontext(&thread->context, (void (*)(void)) thread_f,  2, func, funcarg);
+	// ATTENTION :  Makecontext retourne void... pourquoi la notre retourne un int?
+	// Ajouté return 0
+	return 0;
+}
+
 int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 {
 	int res=sched_init();
@@ -65,7 +83,7 @@ int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 	if(*newthread == NULL)//Erreur : thread_s_init
 		return -1;
 
-	sched_makecontext(*newthread, func, funcarg);
+	_makecontext(*newthread, func, funcarg);
 	//makecontext(&(*newthread)->context, (void (*)(void)) func, 1, funcarg);
 	(*newthread)->status = READY;
 

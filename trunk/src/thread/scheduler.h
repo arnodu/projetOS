@@ -18,7 +18,6 @@ int sched_init();
 //NULL si erreur
 thread_t sched_runningThread();
 
-int sched_makecontext(thread_t thread, void* (*func)(void*), void* funcarg);
 
 //Ajoute une tache à ordonnanceur
 //0 si tout s'est bien passé

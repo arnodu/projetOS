@@ -3,41 +3,54 @@
 #include <stdlib.h>
 #include <ucontext.h>
 #include <assert.h>
-
+#include <sys/queue.h>
 #include "scheduler.h"
 #include "thread_t.h"
 
 static scheduler sched = NULL;
 
 struct _scheduler{
-	thread_t running;//Thread courant
-	thread_t main_thread;//Thread main: c'est le thread courant au moment de sched_init (on supposera que init est appelée pour la 1ere fois dans le main)
+	thread_t running;   //Thread courant
+	thread_t main_thread;
+	
 };
 
-#define RQ_SIZE 1000
-//TODO: replacer par une vraie file
-thread_t runqueue[RQ_SIZE];
-int rq_begin;
-int rq_end;
+typedef struct queue
+{
+	thread_t curr;
+	CIRCLEQ_ENTRY(queue) prev_next_thread; 
+} queue;
+
+CIRCLEQ_HEAD(queue_head_last, queue) queue_head_last;
+
+struct queue_head_last* _scheduler_head_last;
 
 //Libère les ressources du scheduler (notament le thread main)
 //Est appelé avant la fermeture du programme avec exit();
 void sched_free()
-{
+{	queue* curr;
+	CIRCLEQ_FOREACH(curr, _scheduler_head_last, prev_next_thread){		
+		CIRCLEQ_REMOVE(_scheduler_head_last, curr, prev_next_thread);
+	}	
+	free(_scheduler_head_last);
 	free(sched->main_thread);
 	free(sched);
 }
 
 //Initialise le scheduler
 //Retourne 0 si succes
-// TODO : !!!!! Il faut INITIALISER rq_begin et rq_end ()
+
 int sched_init()
 {
-	if(sched!=NULL)
+	if(sched != NULL)
 		return 0;
 	//Alloc de la structure
 	sched = malloc(sizeof(struct _scheduler));
 
+	_scheduler_head_last = malloc(sizeof(struct queue_head_last));
+
+	CIRCLEQ_INIT(_scheduler_head_last);
+	
 	//Initialisation du thread courant (main)
 	sched->running = malloc(sizeof(struct _thread_t));
 	sched->running->retval = NULL;
@@ -54,23 +67,7 @@ int sched_init()
 	return 0;
 }
 
-//Fonction appelée à la création d'un thread
-//Wrap la fonction donnée en paramètre pour que la fonction retourne bien avec thread_exit
-static void thread_f(void* (*func)(void*), void* funcarg)
-{
-	void* res = func(funcarg);
-	thread_exit(res);
-}
 
-//fait makecontext sur le contexte du thread donné pour qu'il utilise la fonction func
-//si func termine, thread_exit est appelé avec la valeur de retour (voir thread_f)
-int sched_makecontext(thread_t thread, void* (*func)(void*), void* funcarg)
-{
-	makecontext(&thread->context, (void (*)(void)) thread_f,  2, func, funcarg);
-	// ATTENTION :  Makecontext retourne void... pourquoi la notre retourne un int?
-	// Ajouté return 0
-	return 0;
-}
 
 //Retourne le thread qui est actuellement éxécuté
 //NULL si erreur
@@ -84,9 +81,10 @@ thread_t sched_runningThread()
 int sched_addThread(thread_t thread)
 {
 	//TODO: replacer par une vraie file
-	runqueue[rq_end++]=thread;
-	if(rq_end>=RQ_SIZE)
-		rq_end=0;
+	
+	queue* q = malloc(sizeof(queue));
+	q->curr = thread;
+	CIRCLEQ_INSERT_TAIL(_scheduler_head_last, q, prev_next_thread);	
 	return 0;
 }
 
@@ -108,11 +106,12 @@ static void sched_switchToThread(thread_t thread)
 int sched_schedule()
 {
 	//TODO: replacer par une vraie file
-	if(rq_begin==rq_end)
+	if(CIRCLEQ_EMPTY(_scheduler_head_last))
 		exit(0);
-	thread_t thread = runqueue[rq_begin++];
-	if(rq_begin>=RQ_SIZE)
-		rq_begin = 0;
+	queue* s = CIRCLEQ_FIRST(_scheduler_head_last);
+	thread_t thread = s->curr;
+	CIRCLEQ_REMOVE(_scheduler_head_last, s,prev_next_thread);	
+	free(s);
 	sched_switchToThread(thread);
 	return 0;
 }
