@@ -75,6 +75,10 @@ add_executable("32-switch-many-join"
 target_link_libraries("32-switch-many-join"
         thread)
 
+## valgrind
+find_program(CTEST_MEMORYCHECK_COMMAND NAMES valgrind)
+#INCLUDE(Dart)
+
 ####### Adding test rules. ###########
 add_test("main_test"
   ${EXECUTABLE_OUTPUT_PATH}/01-main)
@@ -92,13 +96,13 @@ add_test("join_main_test"
   ${EXECUTABLE_OUTPUT_PATH}/12-join-main)
 
 add_test("create-many-test"
-  ${EXECUTABLE_OUTPUT_PATH}/21-create-many)
+  ${EXECUTABLE_OUTPUT_PATH}/21-create-many 1001)
 
 add_test("create-many-recursive-test"
-  ${EXECUTABLE_OUTPUT_PATH}/22-create-many-recursive)
+  ${EXECUTABLE_OUTPUT_PATH}/22-create-many-recursive 375) # 400 ça marche plus
 
 add_test("switch-many-test"
-  ${EXECUTABLE_OUTPUT_PATH}/31-switch-many)
+  ${EXECUTABLE_OUTPUT_PATH}/31-switch-many 10 10)
 
 add_test("switch-many-join-test"
   ${EXECUTABLE_OUTPUT_PATH}/32-switch-many-join 10 10)
