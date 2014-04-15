@@ -9,9 +9,7 @@ struct _thread_t{
 	void* 		retval;
 	enum {INIT, READY, RUNNING, TERMINATED}
 				status;
-#ifndef DEBUG
 	int valgrind_stackid;
-#endif
 };
 
 //Initialise un thread vide

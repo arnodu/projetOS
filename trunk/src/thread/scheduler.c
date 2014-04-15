@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <ucontext.h>
 #include <assert.h>
-#include <sys/queue.h>
+#include "runqueue.h"
 #include "scheduler.h"
 #include "thread_t.h"
 
@@ -11,35 +11,24 @@ static scheduler sched = NULL;
 
 struct _scheduler{
 	thread_t running;   //Thread courant
-	thread_t main_thread;
-	
 };
 
-typedef struct queue
-{
-	thread_t curr;
-	CIRCLEQ_ENTRY(queue) prev_next_thread; 
-} queue;
-
-CIRCLEQ_HEAD(queue_head_last, queue) queue_head_last;
-
-struct queue_head_last* _scheduler_head_last;
+runqueue_t rq;
 
 //Libère les ressources du scheduler (notament le thread main)
 //Est appelé avant la fermeture du programme avec exit();
+#include <stdio.h>
 void sched_free()
-{	queue* curr;
-	CIRCLEQ_FOREACH(curr, _scheduler_head_last, prev_next_thread){		
-		CIRCLEQ_REMOVE(_scheduler_head_last, curr, prev_next_thread);
-	}	
-	free(_scheduler_head_last);
-	free(sched->main_thread);
+{
+	//if(sched->running->stack!=NULL) //si on est pas dans le thread main
+		//free(sched->running->stack);
+	runqueue_free(rq);
+	free(sched->running);
 	free(sched);
 }
 
 //Initialise le scheduler
 //Retourne 0 si succes
-
 int sched_init()
 {
 	if(sched != NULL)
@@ -47,10 +36,8 @@ int sched_init()
 	//Alloc de la structure
 	sched = malloc(sizeof(struct _scheduler));
 
-	_scheduler_head_last = malloc(sizeof(struct queue_head_last));
+	rq = runqueue_init();
 
-	CIRCLEQ_INIT(_scheduler_head_last);
-	
 	//Initialisation du thread courant (main)
 	sched->running = malloc(sizeof(struct _thread_t));
 	sched->running->retval = NULL;
@@ -58,8 +45,6 @@ int sched_init()
 	sched->running->status = RUNNING;
 	sched->running->stack = NULL;
 	sched->running->context.uc_link = NULL;
-
-	sched->main_thread=sched->running;
 
 	//Enregistrement de la fonction de libération à la fermeture du programme
 	atexit(sched_free);
@@ -81,10 +66,7 @@ thread_t sched_runningThread()
 int sched_addThread(thread_t thread)
 {
 	//TODO: replacer par une vraie file
-	
-	queue* q = malloc(sizeof(queue));
-	q->curr = thread;
-	CIRCLEQ_INSERT_TAIL(_scheduler_head_last, q, prev_next_thread);	
+	runqueue_push(rq,thread);
 	return 0;
 }
 
@@ -105,14 +87,9 @@ static void sched_switchToThread(thread_t thread)
 //retourne 0 si tout s'est bien passé
 int sched_schedule()
 {
-	//TODO: replacer par une vraie file
-	if(CIRCLEQ_EMPTY(_scheduler_head_last))
+	if(runqueue_isEmpty(rq))
 		exit(0);
-	queue* s = CIRCLEQ_FIRST(_scheduler_head_last);
-	thread_t thread = s->curr;
-	CIRCLEQ_REMOVE(_scheduler_head_last, s,prev_next_thread);	
-	free(s);
-	sched_switchToThread(thread);
+	sched_switchToThread(runqueue_pop(rq));
 	return 0;
 }
 

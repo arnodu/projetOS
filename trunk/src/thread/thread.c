@@ -4,11 +4,8 @@
 #include "thread.h"
 #include "thread_t.h"
 #include "scheduler.h"
-#include <stdio.h>
 
-#ifndef NDEBUG
 #include <valgrind/valgrind.h>
-#endif
 
 #define THREAD_STACK_SIZE 64*1024
 
@@ -47,28 +44,26 @@ thread_t thread_s_init()
 	thread->context.uc_stack.ss_size = THREAD_STACK_SIZE;
 	thread->context.uc_stack.ss_sp = thread->stack;
 	thread->context.uc_link = NULL;
-#ifndef NDEBUG
 	//Pour valgrind
 	thread->valgrind_stackid = VALGRIND_STACK_REGISTER(thread->context.uc_stack.ss_sp,
 							thread->context.uc_stack.ss_sp + thread->context.uc_stack.ss_size);
- #endif
 
 	return thread;
 }
 
 //Fonction appelée à la création d'un thread
 //Wrap la fonction donnée en paramètre pour que la fonction retourne bien avec thread_exit
-static void thread_f(void* (*func)(void*), void* funcarg)
+static void function_wrapper(void* (*func)(void*), void* funcarg)
 {
 	void* res = func(funcarg);
 	thread_exit(res);
 }
 
 //fait makecontext sur le contexte du thread donné pour qu'il utilise la fonction func
-//si func termine, thread_exit est appelé avec la valeur de retour (voir thread_f)
+//si func termine, thread_exit est appelé avec la valeur de retour (voir function_wrapper)
 int _makecontext(thread_t thread, void* (*func)(void*), void* funcarg)
 {
-	makecontext(&thread->context, (void (*)(void)) thread_f,  2, func, funcarg);
+	makecontext(&thread->context, (void (*)(void)) function_wrapper,  2, func, funcarg);
 	// ATTENTION :  Makecontext retourne void... pourquoi la notre retourne un int?
 	// Ajouté return 0
 	return 0;
@@ -122,24 +117,19 @@ int thread_join(thread_t thread, void **retval)
 	}
 	if(thread->stack!=NULL)//si c'est pas le main
 	{
-#ifndef NDEBUG
-	VALGRIND_STACK_DEREGISTER(thread->valgrind_stackid);
-#endif
+		VALGRIND_STACK_DEREGISTER(thread->valgrind_stackid);
 		free(thread->stack);
-		free(thread);
 	}
+	free(thread);
 
 	return 0;
 }
 
 void thread_exit(void *retval)
 {
-	fprintf(stderr, "Avant sched_init\n");
 	sched_init();
-	fprintf(stderr, "Apres sched_init\n");
 	//Modification du statut du thread courant
 	thread_t thread = thread_self();
-	fprintf(stderr, "Apres thread_self\n");
 	thread->retval = retval;
 	thread->status = TERMINATED;
 
