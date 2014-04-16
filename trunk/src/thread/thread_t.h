@@ -4,9 +4,7 @@
 #include <ucontext.h>
 #include <sys/queue.h>
 
-typedef struct _thread_t* thread_t;
-
-struct _thread_t{
+typedef struct _thread_t{
 	ucontext_t 	context;
 	void* 		stack;
 	void* 		retval;
@@ -15,7 +13,7 @@ struct _thread_t{
 	int valgrind_stackid;
 
 	CIRCLEQ_ENTRY(_thread_t) entries;
-};
+}* thread_t;
 
 //Initialise un thread vide
 thread_t thread_s_init();
