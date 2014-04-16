@@ -133,13 +133,10 @@ int thread_join(thread_t thread, void **retval)
 }
 
 void thread_exit(void *retval)
-{
-	fprintf(stderr, "Avant sched_init\n");
+{	
 	sched_init();
-	fprintf(stderr, "Apres sched_init\n");
 	//Modification du statut du thread courant
-	thread_t thread = thread_self();
-	fprintf(stderr, "Apres thread_self\n");
+	thread_t thread = thread_self();	
 	thread->retval = retval;
 	thread->status = TERMINATED;
 
