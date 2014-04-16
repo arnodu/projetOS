@@ -1,4 +1,13 @@
 projetOS
 ========
 
-YoY le projet d'OS YoY
+
+### Compilation du projet ###
+
+* `cmake`
+*
+
+### Lancement des tests ###
+
+* Lancement: `ctest`
+* Lancement avec valgrind:  

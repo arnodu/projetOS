@@ -126,10 +126,17 @@ int thread_join(thread_t thread, void **retval)
 }
 
 void thread_exit(void *retval)
+<<<<<<< HEAD
 {
 	sched_init();
 	//Modification du statut du thread courant
 	thread_t thread = thread_self();
+=======
+{	
+	sched_init();
+	//Modification du statut du thread courant
+	thread_t thread = thread_self();	
+>>>>>>> 634f318d6b2083096cf8bb4870aeb1e60757e390
 	thread->retval = retval;
 	thread->status = TERMINATED;
 
