@@ -4,10 +4,11 @@ projetOS
 
 ### Compilation du projet ###
 
-* `cmake`
-*
+* Se palcer dans le dossier build 
+* Génerer le makefile`cmake ..`
+* 
 
 ### Lancement des tests ###
 
 * Lancement: `ctest`
-* Lancement avec valgrind:  
+* Lancement avec valgrind: `ctest -T memcheck`   
