@@ -34,6 +34,7 @@ add_test("main_test"
 add_test("switch_test"
   ${EXECUTABLE_OUTPUT_PATH}/02-switch)
 
+message(STATUS "lol")
 add_test("fibo_10_test"
   ${EXECUTABLE_OUTPUT_PATH}/51-fibonacci 10)
 
