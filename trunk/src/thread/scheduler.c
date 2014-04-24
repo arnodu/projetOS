@@ -44,6 +44,7 @@ int sched_init()
 	getcontext(&sched->running->context);
 	sched->running->status = RUNNING;
 	sched->running->stack = NULL;
+	sched->running->waiting = NULL;
 	sched->running->context.uc_link = NULL;
 
 	//Enregistrement de la fonction de libération à la fermeture du programme
@@ -75,6 +76,7 @@ static void sched_switchToThread(thread_t thread)
 {
 	assert(thread->status == READY || (thread == sched->running && thread->status == RUNNING));
 	assert(sched->running->status == RUNNING || sched->running->status == TERMINATED);
+
 	thread_t oldRunning = sched->running;
 	sched->running = thread;
 	if(oldRunning->status == RUNNING)
@@ -87,9 +89,27 @@ static void sched_switchToThread(thread_t thread)
 //retourne 0 si tout s'est bien passé
 int sched_schedule()
 {
-	if(runqueue_isEmpty(rq))
-		exit(0);
-	sched_switchToThread(runqueue_pop(rq));
+    thread_t thread;
+    do
+    {
+        if(runqueue_isEmpty(rq))
+            exit(0);
+        thread = runqueue_pop(rq);
+        if(thread->waiting != NULL)
+        {
+            if(thread->waiting->status == TERMINATED)
+            {
+                thread->waiting = NULL;
+            }
+            else
+            {
+                runqueue_push(rq,thread);
+            }
+        }
+    }
+    while(thread->waiting != NULL);
+
+	sched_switchToThread(thread);
 	return 0;
 }
 

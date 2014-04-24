@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$#" -eq 0 ]; then
-    iter=50
+    iter=10
 else 	
 	iter=$1
 fi
@@ -14,9 +14,9 @@ fi
 
 echo "temps d'execution de $iter itérations de 31-switch-many à nombre de yield constants et à nombre de threads variable"
 
-for i in `seq 0 100`
+for i in `seq 0 20`
 do		
-	j=$(($i*20))		
+	j=$(($i*100))		
 	for k in `seq 1 $iter`
 	do 
 		v=$(($v + $(bin/./31-switch-many $j 10 | cut -d " " -f 6)))
@@ -30,9 +30,9 @@ done
 echo "temps d'execution de $iter itérations de 31-switch-many à nombre de threads constants et à nombre de yield variable"
 
 
-for i in `seq 0 100`
+for i in `seq 0 20`
 do
-	j=$(($i*20))
+	j=$(($i*100))
 	for k in `seq 1 $iter`
 	do 
 		v=$(($v + $(bin/./31-switch-many 10 $j | cut -d " " -f 6)))
