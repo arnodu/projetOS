@@ -21,6 +21,11 @@
 *~
 *#
 
+# scripts & gnuplot
+
+trunk/data
+trunk/img
+
 #cmake
 trunk/build
 trunk/bin

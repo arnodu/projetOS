@@ -5,10 +5,10 @@
 
 typedef struct _runqueue_t* runqueue_t;
 
-runqueue_t 	runqueue_init	();
-int 		runqueue_isEmpty(runqueue_t rq);
-void 		runqueue_push	(runqueue_t rq, thread_t thread);
-thread_t 	runqueue_pop	(runqueue_t rq);
-void		runqueue_free	(runqueue_t rq);
+inline runqueue_t 	runqueue_init	();
+inline int 		runqueue_isEmpty(runqueue_t rq);
+inline void 		runqueue_push	(runqueue_t rq, thread_t thread);
+inline thread_t 	runqueue_pop	(runqueue_t rq);
+inline void		runqueue_free	(runqueue_t rq);
 
 #endif
