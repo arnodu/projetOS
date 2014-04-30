@@ -59,4 +59,4 @@ add_test("fibo_10_test"
   ${EXECUTABLE_OUTPUT_PATH}/51-fibonacci 10)
 
 add_test("exit_test"
-  ${EXECUTABLE_OUTPUT_PATH}/61-exit_thread)
+  ${EXECUTABLE_OUTPUT_PATH}/61-exit-thread)

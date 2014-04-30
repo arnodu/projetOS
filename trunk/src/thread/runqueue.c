@@ -42,7 +42,7 @@ thread_t runqueue_pop	(runqueue_t rq)
 }
 void runqueue_free	(runqueue_t rq)
 {
-	assert(runqueue_isEmpty(rq));
+	//assert(runqueue_isEmpty(rq));
 	free(rq);
 
 //	runqueue_entry curr;
