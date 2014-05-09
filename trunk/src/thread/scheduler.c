@@ -18,6 +18,17 @@ runqueue_t rq;
 //Libère les ressources du scheduler (notament le thread main)
 //Est appelé avant la fermeture du programme avec exit();
 #include <stdio.h>
+
+//Fonction associée au signal de préemption
+
+static void preemp_handler(int signum) 
+{
+	
+	thread_yield();
+	
+	
+}
+
 void sched_free()
 {
 	//if(sched->running->stack!=NULL) //si on est pas dans le thread main
@@ -31,6 +42,8 @@ void sched_free()
 //Retourne 0 si succes
 int sched_init()
 {
+	
+	
 	if(sched != NULL)
 		return 0;
 	//Alloc de la structure
@@ -46,6 +59,10 @@ int sched_init()
 	sched->running->stack = NULL;
 	sched->running->waiting = NULL;
 	sched->running->context.uc_link = NULL;
+	
+	//Gestion du signal permettant la préemption
+	
+	if(signal(SIGUSR1,preemp_handler)==SIG_ERR) { perror("Signal error"); exit(EXIT_FAILURE); } 
 
 	//Enregistrement de la fonction de libération à la fermeture du programme
 	atexit(sched_free);
@@ -111,6 +128,14 @@ int sched_schedule()
 
 	sched_switchToThread(thread);
 	return 0;
+}
+
+int send_PreempSignal()
+{
+	
+	kill(getpid(), SIGUSR1);
+	return 0;
+	
 }
 
 #endif
