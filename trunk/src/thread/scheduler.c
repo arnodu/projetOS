@@ -26,7 +26,6 @@ static void preemp_handler(int signum)
 	
 	thread_yield();
 	
-	
 }
 
 void sched_free()
@@ -40,10 +39,10 @@ void sched_free()
 
 //Initialise le scheduler
 //Retourne 0 si succes
+__attribute__((constructor))
 int sched_init()
 {
-	
-	
+		
 	if(sched != NULL)
 		return 0;
 	//Alloc de la structure
