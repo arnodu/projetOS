@@ -1,12 +1,14 @@
 #ifndef THREAD_MUTEX_H
 #define THREAD_MUTEX_H
 
-typedef thread_mutex_t;
+typedef struct _thread_mutex thread_mutex_t;
+// Pour les sémaophores, utiliser un compare and swap(), au lieu d'un test
 
 /**
  *\brief Initializes a mutex to default values, This function does not
  * allocate the memory. You need to allocate the memory yourself with malloc().
  * The state of the mutex after calling this function is UNLOCKED.
+ * You need to destroy a mutex before calling thread_mutex_init on it again.
  *\return 0 on success, ////////!\\\\\\\\\\(?) on error
  **/
 int thread_mutex_init(thread_mutex_t * mutex);
@@ -22,7 +24,7 @@ int thread_mutex_init(thread_mutex_t * mutex);
 /**
  * \brief If the mutex isn't already locked, sets its state to LOCKED, and
  * gives the ownership of that mutex to the calling thread. If the mutex
- * is already locked, then the calling thread blocks until the mutex 
+ * is already locked, then the calling thread blocks until the mutex
  * becomes available.
  **/
 int thread_mutex_lock(thread_mutex_t *mutex);

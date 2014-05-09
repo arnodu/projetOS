@@ -37,11 +37,11 @@ int main(int argc, char const *argv[]) {
         array[i] = i+1;
 
     for (i = 0; i < nb_threads; i++)
-        if (pthread_create(&thread[i], NULL, thread_func, NULL) != 0)
+     //   if (pthread_create(&thread[i], NULL, thread_func, NULL) != 0)
             perror("Pthread create fails");
 
     for (i = 0; i < nb_threads; i++)
-        if (pthread_join(thread[i], NULL) != 0)
+       // if (pthread_join(thread[i], NULL) != 0)
             perror("Pthread join fails");
 
     printf("The sum of 1 to %i is %d\n", array_size, sum);

@@ -1,18 +1,21 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #define THREADNUM 40
 
 long long a =1;
 long long b= 0;
 //pthread_mutex MYMUTEX;
 pthread_mutex_t * mutex;
+int * lock = 0;
+
 void thread_f()
 {
-  pthread_mutex_lock(mutex);
+  //pthread_mutex_lock(mutex);
   a=a+b;
   b= a+b;
-  pthread_mutex_unlock(mutex);
+  //pthread_mutex_unlock(mutex);
   return;
 }
 
