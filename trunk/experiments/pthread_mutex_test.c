@@ -13,6 +13,7 @@ int * lock = 0;
 void thread_f()
 {
   //pthread_mutex_lock(mutex);
+  __atomic_test_and_set(lock, __ATOMIC_SEQ_CST);
   a=a+b;
   b= a+b;
   //pthread_mutex_unlock(mutex);
