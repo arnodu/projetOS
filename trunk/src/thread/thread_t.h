@@ -11,7 +11,6 @@ typedef struct _thread_t{
 	enum {INIT, READY, RUNNING, TERMINATED}
 				status;
 	int valgrind_stackid;
-	thread_t waiting;
 
 	CIRCLEQ_ENTRY(_thread_t) entries;
 }* thread_t;
