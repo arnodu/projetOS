@@ -45,6 +45,7 @@ int sched_init()
 	sched->running->status = RUNNING;
 	sched->running->stack = NULL;
 	sched->running->context.uc_link = NULL;
+	sched->running->waiting = NULL;
 
 	//Enregistrement de la fonction de libération à la fermeture du programme
 	atexit(sched_free);
@@ -74,7 +75,7 @@ int sched_addThread(thread_t thread)
 static void sched_switchToThread(thread_t thread)
 {
 	assert(thread->status == READY || (thread == sched->running && thread->status == RUNNING));
-	assert(sched->running->status == RUNNING || sched->running->status == TERMINATED);
+	assert(sched->running->status == RUNNING || sched->running->status == TERMINATED || sched->running->status == WAITING);
 
 	thread_t oldRunning = sched->running;
 	sched->running = thread;
@@ -82,6 +83,19 @@ static void sched_switchToThread(thread_t thread)
 		oldRunning->status = READY;
 	sched->running->status = RUNNING;
 	swapcontext(&oldRunning->context,&thread->context);
+}
+
+int sched_waitThread(thread_t thread)
+{
+    if(thread->status != TERMINATED)
+    {
+        thread_t self = thread_self();
+        self->status = WAITING;
+        thread->waiting = self;
+        if(0!=sched_schedule())
+            return -1;
+    }
+    return 0;
 }
 
 //Demande au scheduler de swapper sur le prochain thread

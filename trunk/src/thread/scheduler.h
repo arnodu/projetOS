@@ -23,6 +23,10 @@ thread_t sched_runningThread();
 //0 si tout s'est bien passé
 int sched_addThread(thread_t thread);
 
+//Fait en sorte que le thread courant attende thread
+//Retourne 0 si tou s'est bien passé
+int sched_waitThread(thread_t thread);
+
 //Demande au scheduler de swapper sur le prochain thread
 //retourne 0 si tout s'est bien passé
 int sched_schedule();

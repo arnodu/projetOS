@@ -25,6 +25,7 @@ thread_t thread_s_init()
 	//Init de l'etat
 	thread->status = INIT;
 	thread->retval = NULL;
+	thread->waiting = NULL;
 
 	//Init de la stack
 	thread->stack = malloc(THREAD_STACK_SIZE);
@@ -106,11 +107,13 @@ int thread_yield(void)
 int thread_join(thread_t thread, void **retval)
 {
 	sched_init();
-	while(thread->status != TERMINATED)
-	{
-		if(0!=thread_yield())
-			return -1;
-	}
+
+	sched_waitThread(thread);
+	//while(thread->status != TERMINATED)
+	//{
+	//	if(0!=thread_yield())
+	//		return -1;
+	//}
 	assert(thread->status == TERMINATED);
 
 	if(retval != NULL)
@@ -134,6 +137,12 @@ void thread_exit(void *retval)
 	thread_t thread = thread_self();
 	thread->retval = retval;
 	thread->status = TERMINATED;
+	if(thread->waiting != NULL)
+	{
+        sched_addThread(thread->waiting);
+        thread->waiting->status = READY;
+        thread->waiting = NULL;
+    }
 
 	//On de mande au scheduler de changer de thread sans rajouter celui ci
 	sched_schedule();
