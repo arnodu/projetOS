@@ -12,6 +12,7 @@
 
 thread_t thread_self(void)
 {
+	sched_init();
 	return sched_runningThread();
 }
 
@@ -72,7 +73,9 @@ int _makecontext(thread_t thread, void* (*func)(void*), void* funcarg)
 
 int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 {
-	int res;
+	int res=sched_init();
+	if(res != 0)//Erreur: sched_init
+		return -1;
 	*newthread = thread_s_init();
 	if(*newthread == NULL)//Erreur : thread_s_init
 		return -1;
@@ -90,6 +93,7 @@ int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 
 int thread_yield(void)
 {
+	sched_init();
 	int res;
 	res = sched_addThread(thread_self());
 	if(res != 0)//Erreur: sched_addThread
@@ -102,6 +106,7 @@ int thread_yield(void)
 
 int thread_join(thread_t thread, void **retval)
 {
+	sched_init();
 	thread_t self = thread_self();
 	self->waiting = thread;
 	//while(thread->status != TERMINATED)
@@ -119,14 +124,8 @@ int thread_join(thread_t thread, void **retval)
 	{
 		VALGRIND_STACK_DEREGISTER(thread->valgrind_stackid);
 		free(thread->stack);
-		free(thread);
 	}
-	else // Si c'est le main qui est en train d'être join, on sauvegarde son contexte.
-		// On reviendra dessus quand la runqueue sera vide (fin du programme) pour pouvoir libérer
-		// le dernier thread qui s'executait.
-	{
-		sched_save_main_context(thread);
-	}
+	free(thread);
 	self->status=RUNNING;
 	self->waiting = NULL;
 
@@ -135,6 +134,7 @@ int thread_join(thread_t thread, void **retval)
 
 void thread_exit(void *retval)
 {
+	sched_init();
 	//Modification du statut du thread courant
 	thread_t thread = thread_self();
 	thread->retval = retval;
@@ -142,10 +142,8 @@ void thread_exit(void *retval)
 
 	//On de mande au scheduler de changer de thread sans rajouter celui ci
 	sched_schedule();
-	
-	// C'est normal de revenir ici maintenant dans le cas du main
-	//assert(0);
-	exit(0);
+	assert(0);
+	exit(-1);
 }
 
 #endif
