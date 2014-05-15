@@ -44,8 +44,8 @@ int sched_init()
 	getcontext(&sched->running->context);
 	sched->running->status = RUNNING;
 	sched->running->stack = NULL;
-	sched->running->waiting = NULL;
 	sched->running->context.uc_link = NULL;
+	sched->running->waiting = NULL;
 
 	//Enregistrement de la fonction de libération à la fermeture du programme
 	atexit(sched_free);
@@ -75,7 +75,7 @@ int sched_addThread(thread_t thread)
 static void sched_switchToThread(thread_t thread)
 {
 	assert(thread->status == READY || (thread == sched->running && thread->status == RUNNING));
-	assert(sched->running->status == RUNNING || sched->running->status == TERMINATED);
+	assert(sched->running->status == RUNNING || sched->running->status == TERMINATED || sched->running->status == WAITING);
 
 	thread_t oldRunning = sched->running;
 	sched->running = thread;
@@ -85,32 +85,29 @@ static void sched_switchToThread(thread_t thread)
 	swapcontext(&oldRunning->context,&thread->context);
 }
 
+int sched_waitThread(thread_t thread)
+{
+    if(thread->status != TERMINATED)
+    {
+        thread_t self = thread_self();
+        self->status = WAITING;
+        thread->waiting = self;
+        if(0!=sched_schedule())
+            return -1;
+    }
+    return 0;
+}
+
 //Demande au scheduler de swapper sur le prochain thread
 //retourne 0 si tout s'est bien passé
 int sched_schedule()
 {
     thread_t thread;
-    do
-    {
-        if(runqueue_isEmpty(rq))
-            exit(0);
-        thread = runqueue_pop(rq);
-        if(thread->waiting != NULL)
-        {
-            if(thread->waiting->status == TERMINATED)
-            {
-                thread->waiting = NULL;
-            }
-            else
-            {
-                runqueue_push(rq,thread);
-            }
-        }
-    }
-    while(thread->waiting != NULL);
-
-	sched_switchToThread(thread);
-	return 0;
+    if(runqueue_isEmpty(rq))
+        exit(0);
+    thread = runqueue_pop(rq);
+    sched_switchToThread(thread);
+    return 0;
 }
 
 #endif
