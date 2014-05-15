@@ -2,28 +2,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define THREADNUM 40
+#define THREADNUM 50
 
 long long a =1;
 long long b= 0;
 //pthread_mutex MYMUTEX;
-pthread_mutex_t * mutex;
-int * lock = 0;
+pthread_mutex_t mutex;
+int lock_v = 0;
 
+void lock()
+{
+	while(__atomic_test_and_set(&lock_v, __ATOMIC_SEQ_CST));
+}
+
+void unlock()
+{
+	lock_v = 0;
+}
 void thread_f()
 {
-  //pthread_mutex_lock(mutex);
-  __atomic_test_and_set(lock, __ATOMIC_SEQ_CST);
-  a=a+b;
-  b= a+b;
-  //pthread_mutex_unlock(mutex);
+  //thread_mutex_lock(&mutex);
+
+  int local =a;
+  local = sqrt(local*local +2)/
+
+  //thread_mutex_unlock(&mutex);
   return;
 }
 
 int main(void)
 {
-  mutex = malloc(sizeof(*mutex));
-  pthread_mutex_init(mutex, NULL);
+  pthread_mutex_init(&mutex, NULL);
   int err;
   void * b;
   pthread_t thread[THREADNUM];
@@ -42,6 +51,6 @@ int main(void)
     pthread_join(thread[i], &b);
 
   }
-  pthread_mutex_destroy(mutex);
+  pthread_mutex_destroy(&mutex);
   printf("%lld \n", a);
 }
