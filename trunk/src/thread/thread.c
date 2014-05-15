@@ -85,6 +85,7 @@ int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 	(*newthread)->status = READY;
 
 	res = sched_addThread(*newthread);
+	thread_yield();
 	if(res != 0)//Erreur: sched_addThread
 		return -1;
 
@@ -109,11 +110,7 @@ int thread_join(thread_t thread, void **retval)
 	sched_init();
 
 	sched_waitThread(thread);
-	//while(thread->status != TERMINATED)
-	//{
-	//	if(0!=thread_yield())
-	//		return -1;
-	//}
+
 	assert(thread->status == TERMINATED);
 
 	if(retval != NULL)
@@ -122,10 +119,8 @@ int thread_join(thread_t thread, void **retval)
 	}
 	if(thread->stack!=NULL)//si c'est pas le main
 	{
-		VALGRIND_STACK_DEREGISTER(thread->valgrind_stackid);
-		free(thread->stack);
+		free(thread);
 	}
-	free(thread);
 
 	return 0;
 }
@@ -145,8 +140,9 @@ void thread_exit(void *retval)
     }
 
 	//On de mande au scheduler de changer de thread sans rajouter celui ci
-	sched_schedule();
-	exit(-1);
+	sched_detach_and_schedule();
+	//A partir d'ici on est dans le main apres que tous les threads soient terminés
+	exit(0);
 }
 
 #endif

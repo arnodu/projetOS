@@ -31,4 +31,7 @@ int sched_waitThread(thread_t thread);
 //retourne 0 si tout s'est bien passé
 int sched_schedule();
 
+//Appelle le scheduler dans un contexte à part
+void sched_detach_and_schedule();
+
 #endif
