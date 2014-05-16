@@ -11,14 +11,14 @@ thread_mutex_t mutex;
 
 void thread_f()
 {
-  //thread_mutex_lock(&mutex);
+  thread_mutex_lock(&mutex);
 
-  double local = a;
+  double local,locala = a;
   local  = log( sqrt(a*a +1 )/exp(2.0 + 0.1*a));
-  usleep(10000);
-  a= a +1;
+  thread_yield();
+  a=  locala +1;
 	//unlock();
-  //thread_mutex_unlock(&mutex);
+  thread_mutex_unlock(&mutex);
   return;
 }
 
