@@ -1,5 +1,6 @@
 #ifndef USE_PTHREAD
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <ucontext.h>
 #include <assert.h>
@@ -9,12 +10,15 @@
 #include "thread_t.h"
 
 #define THREAD_STACK_SIZE 64*1024
+#define NUM_CPU sysconf( _SC_NPROCESSORS_ONLN )
 
-static scheduler sched = NULL;
+// static scheduler sched[NUM_CPU];
+static scheduler* sched = NULL;
+
+thread_t main_thread;
 
 struct _scheduler{
 	thread_t running;   //Thread courant
-	thread_t main_thread;
 	ucontext_t context_detached;
 	int context_detached_valgrind;
 };
@@ -23,7 +27,6 @@ runqueue_t rq;
 
 //Libère les ressources du scheduler (notament le thread main)
 //Est appelé avant la fermeture du programme avec exit();
-#include <stdio.h>
 void sched_free()
 {
 	runqueue_free(rq);
@@ -36,25 +39,33 @@ void sched_free()
 
 //Initialise le scheduler
 //Retourne 0 si succes
-int sched_init()
+int sched_init_clone(){
+	main_thread = malloc(sizeof(struct _thread_t));
+	main_thread->retval = NULL;
+	getcontext(&main_thread->context);
+	main_thread->status = RUNNING;
+	main_thread->stack = NULL;
+	main_thread->context.uc_link = NULL;
+	main_thread->waiting = NULL;
+
+	sched = malloc(sizeof(scheduler)*NUM_CPU);
+
+ 	for(int i=1; i<NUM_CPU; i++){
+		void * stack = malloc(THREAD_STACK_SIZE);
+		clone(sched_init, stack+THREAD_STACK_SIZE,  CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_VM, &sched[i]); 		
+	}	
+	sched_init(sched[0]);
+}
+
+int sched_init(scheduler* sched)
 {
 	if(sched != NULL)
 		return 0;
 	//Alloc de la structure
-	sched = malloc(sizeof(struct _scheduler));
-
+	
 	rq = runqueue_init();
 
 	//Initialisation du thread courant (main)
-	sched->running = malloc(sizeof(struct _thread_t));
-	sched->running->retval = NULL;
-	getcontext(&sched->running->context);
-	sched->running->status = RUNNING;
-	sched->running->stack = NULL;
-	sched->running->context.uc_link = NULL;
-	sched->running->waiting = NULL;
-
-	sched->main_thread = sched->running;
 
 	//Initialisation du contexte detached (pour libérer les piles au exit)
 	getcontext(&sched->context_detached);

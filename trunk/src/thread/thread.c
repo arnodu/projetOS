@@ -12,7 +12,7 @@
 
 thread_t thread_self(void)
 {
-	sched_init();
+	sched_init_clone();
 	return sched_runningThread();
 }
 
@@ -73,8 +73,8 @@ int _makecontext(thread_t thread, void* (*func)(void*), void* funcarg)
 
 int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 {
-	int res=sched_init();
-	if(res != 0)//Erreur: sched_init
+	int res=sched_init_clone();
+	if(res != 0)//Erreur: sched_init_clone
 		return -1;
 	*newthread = thread_s_init();
 	if(*newthread == NULL)//Erreur : thread_s_init
@@ -94,7 +94,7 @@ int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 
 int thread_yield(void)
 {
-	sched_init();
+	sched_init_clone();
 	int res;
 	res = sched_addThread(thread_self());
 	if(res != 0)//Erreur: sched_addThread
@@ -107,7 +107,7 @@ int thread_yield(void)
 
 int thread_join(thread_t thread, void **retval)
 {
-	sched_init();
+	sched_init_clone();
 
 	sched_waitThread(thread);
 
@@ -127,7 +127,7 @@ int thread_join(thread_t thread, void **retval)
 
 void thread_exit(void *retval)
 {
-	sched_init();
+	sched_init_clone();
 	//Modification du statut du thread courant
 	thread_t thread = thread_self();
 	thread->retval = retval;
