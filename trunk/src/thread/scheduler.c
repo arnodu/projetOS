@@ -1,6 +1,7 @@
 #ifndef USE_PTHREAD
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <ucontext.h>
 #include <assert.h>
 #include "runqueue.h"
@@ -8,6 +9,11 @@
 #include "thread_t.h"
 
 static scheduler sched = NULL;
+
+static void preemp_handler(int signum) 
+{
+	thread_yield();
+}
 
 struct _scheduler{
 	thread_t running;   //Thread courant
@@ -20,13 +26,6 @@ runqueue_t rq;
 #include <stdio.h>
 
 //Fonction associée au signal de préemption
-
-static void preemp_handler(int signum) 
-{
-	
-	thread_yield();
-	
-}
 
 void sched_free()
 {
@@ -49,6 +48,10 @@ int sched_init()
 	sched = malloc(sizeof(struct _scheduler));
 
 	rq = runqueue_init();
+	
+	//Gestion du signal permettant la préemption
+	
+	if(signal(SIGALRM,preemp_handler)==SIG_ERR) { perror("Signal error"); exit(EXIT_FAILURE); } 
 
 	//Initialisation du thread courant (main)
 	sched->running = malloc(sizeof(struct _thread_t));
@@ -59,10 +62,7 @@ int sched_init()
 	sched->running->waiting = NULL;
 	sched->running->context.uc_link = NULL;
 	
-	//Gestion du signal permettant la préemption
 	
-	if(signal(SIGUSR1,preemp_handler)==SIG_ERR) { perror("Signal error"); exit(EXIT_FAILURE); } 
-
 	//Enregistrement de la fonction de libération à la fermeture du programme
 	atexit(sched_free);
 
@@ -82,7 +82,6 @@ thread_t sched_runningThread()
 //0 si tout s'est bien passé
 int sched_addThread(thread_t thread)
 {
-	//TODO: replacer par une vraie file
 	runqueue_push(rq,thread);
 	return 0;
 }
@@ -124,17 +123,12 @@ int sched_schedule()
         }
     }
     while(thread->waiting != NULL);
-
+	
+	ualarm(8000, 0);
 	sched_switchToThread(thread);
+
 	return 0;
 }
 
-int send_PreempSignal()
-{
-	
-	kill(getpid(), SIGUSR1);
-	return 0;
-	
-}
 
 #endif

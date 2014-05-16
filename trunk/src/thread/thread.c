@@ -1,5 +1,6 @@
 #ifndef USE_PTHREAD
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "thread.h"
 #include "thread_t.h"
@@ -10,6 +11,7 @@
 
 #define THREAD_STACK_SIZE 64*1024
 
+
 thread_t thread_self(void)
 {
 	sched_init();
@@ -19,6 +21,7 @@ thread_t thread_self(void)
 //Initialise un thread vide
 thread_t thread_s_init()
 {
+		
 	thread_t thread = malloc(sizeof(struct _thread_t));
 	if(thread==NULL)//Erreur: malloc
 		return NULL;
