@@ -41,7 +41,6 @@ int main(void)
   for(i = 0; i< THREADNUM; i++)
   {
     thread_join(thread[i], &b);
-
   }
   thread_mutex_destroy(&mutex);
   printf("%g \n", a);

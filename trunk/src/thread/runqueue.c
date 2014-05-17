@@ -17,6 +17,7 @@ CIRCLEQ_HEAD(_runqueue_list, _thread_t);
 struct _runqueue_t{
 	struct _runqueue_list list;
 	int spinlock;
+	//thread_mutex_t mutex;
 };
 
 
@@ -24,46 +25,66 @@ runqueue_t runqueue_init	()
 {
 	runqueue_t rq = malloc(sizeof(struct _runqueue_t));
 	CIRCLEQ_INIT(&rq->list);
-	rq->spinlock = 0;
+	//rq->mutex=NULL;
 	return rq;
 }
 int runqueue_isEmpty(runqueue_t rq)
 {
-	spinlock(&rq->spinlock);
-
-	int res = CIRCLEQ_EMPTY(&rq->list);
-
-	spinunlock(&rq->spinlock);
-
-	return res;
+	return CIRCLEQ_EMPTY(&rq->list);
 }
 void runqueue_push	(runqueue_t rq, thread_t thread)
 {
-	spinlock(&rq->spinlock);
-
 	CIRCLEQ_INSERT_TAIL(&rq->list, thread, entries);
-
-	spinunlock(&rq->spinlock);
 }
 thread_t runqueue_pop	(runqueue_t rq)
 {
-	spinlock(&rq->spinlock);
-
 	assert(!runqueue_isEmpty(rq));
 	thread_t e = CIRCLEQ_FIRST(&rq->list);
 	CIRCLEQ_REMOVE(&rq->list, e, entries);
 
-	spinunlock(&rq->spinlock);
 	return e;
 }
 void runqueue_free	(runqueue_t rq)
 {
-	//assert(runqueue_isEmpty(rq));
 	free(rq);
+}
 
-//	runqueue_entry curr;
-//	CIRCLEQ_FOREACH(curr, rq, entries){
-//		CIRCLEQ_REMOVE(rq, curr, entries);
-//		free(curr);
-//	}
+
+runqueue_t runqueue_init_safe()
+{
+	runqueue_t rq = runqueue_init();
+	//thread_mutex_init(&rq->mutex);
+	rq->spinlock = 0;
+	return rq;
+}
+int runqueue_isEmpty_safe(runqueue_t rq)
+{
+	//thread_mutex_lock(&rq->mutex);
+	spinlock(&rq->spinlock);
+    int res = runqueue_isEmpty(rq);
+    //thread_mutex_unlock(&rq->mutex);
+    spinunlock(&rq->spinlock);
+    return res;
+}
+void runqueue_push_safe(runqueue_t rq, thread_t thread)
+{
+    //thread_mutex_lock(&rq->mutex);
+    spinlock(&rq->spinlock);
+    runqueue_push(rq,thread);
+    //thread_mutex_unlock(&rq->mutex);
+    spinunlock(&rq->spinlock);
+}
+thread_t runqueue_pop_safe(runqueue_t rq)
+{
+    //thread_mutex_lock(&rq->mutex);
+    spinlock(&rq->spinlock);
+	thread_t res = runqueue_pop(rq);
+    //thread_mutex_unlock(&rq->mutex);
+    spinunlock(&rq->spinlock);
+    return res;
+}
+void runqueue_free_safe(runqueue_t rq)
+{
+    //thread_mutex_destroy(&rq->mutex);
+	runqueue_free(rq);
 }

@@ -21,17 +21,19 @@
 typedef struct _scheduler* scheduler;
 
 static struct _scheduler* schedTab = NULL;
-int* tidTab = NULL;
+static int* tidTab = NULL;
 
-thread_t main_thread;
+static thread_t main_thread;
 
 struct _scheduler{
 	thread_t running;   //Thread courant
+	thread_t oldRunning;
 	ucontext_t context_detached;
 	int context_detached_valgrind;
+	void * coreStack;
 };
 
-runqueue_t rq;
+static runqueue_t rq;
 
 static int get_corenum()
 {
@@ -52,12 +54,15 @@ void sched_clean()
 	{
 		scheduler sched = &schedTab[get_corenum()];
 
-		free(sched->context_detached.uc_stack.ss_sp);
-		if(sched->running!=main_thread)
+		//free(sched->context_detached.uc_stack.ss_sp);
+		/*if(sched->running!=main_thread)
 			free(sched->running);
+
+        if(i!=0)
+            free(sched->coreStack);*/
 	}
 
-	runqueue_free(rq);
+	runqueue_free_safe(rq);
 	free(main_thread);
 	free(schedTab);
 	free(tidTab);
@@ -69,6 +74,8 @@ static int sched_init_core(int corenum)
 
 	scheduler s = &schedTab[corenum];
 
+	s->oldRunning = NULL;
+
 	//Initialisation du contexte detached (pour libérer les piles au exit)
 	getcontext(&s->context_detached);
 	s->context_detached.uc_stack.ss_size = THREAD_STACK_SIZE;
@@ -78,7 +85,10 @@ static int sched_init_core(int corenum)
 							s->context_detached.uc_stack.ss_sp + s->context_detached.uc_stack.ss_size);
 
 	if(corenum==0)
+	{
 		s->running = main_thread;
+		swapcontext(&main_thread->context,&main_thread->context);
+    }
 	else
 	{
 		s->running = NULL;
@@ -94,7 +104,7 @@ int sched_init(){
 	if(schedTab!=NULL)
 		return 0;
 
-	rq = runqueue_init();
+	rq = runqueue_init_safe();
 
 	main_thread = malloc(sizeof(struct _thread_t));
 	main_thread->retval = NULL;
@@ -116,8 +126,8 @@ int sched_init(){
 
  	for(i=1; i<NUM_CPU; i++){
  		//TODO se souvenir des stacks pour les libérer
-		void * stack = malloc(THREAD_STACK_SIZE);
-		int res = clone(sched_init_core, stack+THREAD_STACK_SIZE,  SIGCHLD | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_VM, (void*) i);
+		schedTab[i].coreStack = malloc(THREAD_STACK_SIZE);
+		int res = clone(sched_init_core, schedTab[i].coreStack+THREAD_STACK_SIZE,  SIGCHLD | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_VM, (void*) i);
 		assert(res!=-1);
 	}
 	sched_init_core(0);
@@ -136,7 +146,7 @@ thread_t sched_runningThread()
 //0 si tout s'est bien passé
 int sched_addThread(thread_t thread)
 {
-	runqueue_push(rq,thread);
+	runqueue_push_safe(rq,thread);
 	return 0;
 }
 
@@ -161,6 +171,12 @@ static void sched_switchToThread(thread_t thread)
 		swapcontext(&oldRunning->context,&thread->context);
 	else
 		setcontext(&thread->context);
+    if(sched->oldRunning!=NULL)
+    {
+        runqueue_push_safe(rq,sched->oldRunning);
+        sched->oldRunning=NULL;
+    }
+
 }
 
 int sched_waitThread(thread_t thread)
@@ -186,14 +202,19 @@ void switch_to_main_stack()
 int sched_schedule()
 {
     thread_t thread;
-    if(runqueue_isEmpty(rq))
-    {
-    	switch_to_main_stack();
-		exit(0);
+    if(runqueue_isEmpty_safe(rq))
+    {//On est le dernier thread
+		return 0;
     }
-    thread = runqueue_pop(rq);
+    thread = runqueue_pop_safe(rq);
     sched_switchToThread(thread);
     return 0;
+}
+
+int sched_schedule_and_add(){
+    scheduler sched = &schedTab[get_corenum()];
+    sched->oldRunning = thread_self();
+    sched_schedule();
 }
 
 void sched_detach_and_schedule_f()

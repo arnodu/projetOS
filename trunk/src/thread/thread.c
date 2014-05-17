@@ -10,6 +10,8 @@
 
 #define THREAD_STACK_SIZE 64*1024
 
+static int num_threads = 0;
+
 thread_t thread_self(void)
 {
 	sched_init();
@@ -85,9 +87,10 @@ int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 	(*newthread)->status = READY;
 
 	res = sched_addThread(*newthread);
-	thread_yield();
 	if(res != 0)//Erreur: sched_addThread
 		return -1;
+    //thread_yield();
+    num_threads++;
 
 	return 0;
 }
@@ -96,10 +99,7 @@ int thread_yield(void)
 {
 	sched_init();
 	int res;
-	res = sched_addThread(thread_self());
-	if(res != 0)//Erreur: sched_addThread
-		return -1;
-	res = sched_schedule();
+	res = sched_schedule_and_add();
 	if(res != 0)//Erreur: sched_addThread
 		return -1;
 	return 0;
@@ -137,12 +137,18 @@ void thread_exit(void *retval)
         sched_addThread(thread->waiting);
         thread->waiting->status = READY;
         thread->waiting = NULL;
+        num_threads--;
     }
 
 	//On de mande au scheduler de changer de thread sans rajouter celui ci
 	sched_detach_and_schedule();
 	//A partir d'ici on est dans le main apres que tous les threads soient terminés
 	exit(0);
+}
+
+int thread_get_num_threads()
+{
+    return num_threads;
 }
 
 #endif

@@ -51,7 +51,7 @@ int thread_mutex_lock(thread_mutex_t *mutex)
 {
     spinlock(&((*mutex)->spinlock_locking));
 
-    if((*mutex)->locked)
+    /*if((*mutex)->locked)
     {
         runqueue_push((*mutex)->waiting, thread_self());
         spinunlock(&((*mutex)->spinlock_locking));
@@ -62,22 +62,20 @@ int thread_mutex_lock(thread_mutex_t *mutex)
     {
         (*mutex)->locked = 1;
         spinunlock(&((*mutex)->spinlock_locking));
-    }
+    }*/
 }
 
 
 int thread_mutex_unlock(thread_mutex_t *mutex)
 {
-
-    (*mutex)->owner = NULL;
+    /*(*mutex)->owner = NULL;
     spinlock(&((*mutex)->spinlock_locking));
     if(!runqueue_isEmpty( (*mutex)->waiting  ))
     {
         thread_t current = runqueue_pop((*mutex)->waiting);
         sched_addThread(current);
-
     }
-    (*mutex)->locked = 0;
+    (*mutex)->locked = 0;*/
     spinunlock(&((*mutex)->spinlock_locking));
 
     return 0;
