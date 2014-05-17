@@ -22,6 +22,7 @@ thread_mutex_t mutex_s_init()
 int thread_mutex_init (thread_mutex_t * mutex)
 {
     *mutex = mutex_s_init();
+    (*mutex)->spinlock_locking = 0;
     (*mutex)->locked = 0;
     (*mutex)->owner = NULL;
     (*mutex)->waiting = runqueue_init();
@@ -70,10 +71,11 @@ int thread_mutex_unlock(thread_mutex_t *mutex)
 
     (*mutex)->owner = NULL;
     spinlock(&((*mutex)->spinlock_locking));
-    while(!runqueue_isEmpty( (*mutex)->waiting  ))
+    if(!runqueue_isEmpty( (*mutex)->waiting  ))
     {
         thread_t current = runqueue_pop((*mutex)->waiting);
         sched_addThread(current);
+
     }
     (*mutex)->locked = 0;
     spinunlock(&((*mutex)->spinlock_locking));
