@@ -3,7 +3,7 @@
 #include "scheduler.h"
 #include "thread.h"
 #include "runqueue.h"
-
+#include "spinlock.h"
 
 typedef struct _thread_mutex
 {
@@ -36,16 +36,7 @@ int thread_mutex_destroy(thread_mutex_t * mutex)
     free(*mutex);
 }
 
-void spinlock(int * lock)
-{
-    while(__atomic_test_and_set (lock, __ATOMIC_SEQ_CST )){
-        thread_yield();
-    }
-}
-void spinunlock(int * lock)
-{
-    *lock = 0;
-}
+
 
 int thread_mutex_lock(thread_mutex_t *mutex)
 {
