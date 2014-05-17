@@ -3,16 +3,16 @@
 
 #ifndef USE_PTHREAD
 
-typedef struct _usem * usem_t;
+typedef struct _usem* usem_t;
 
-/** 
+/**
  * \brief Initializes a semaphore at the address pointed by sem.
  * Semaphores allocated with usem_init should be destroyed with usem_destroy.
  * \return 0 on success, -1 on error.
  */
 int usem_init(usem_t *sem, unsigned int value);
 
-/** 
+/**
  * \brief Destroys the semaphore pointed by sem.
  * Only semaphores initialized with usem_init should be destroyed using this function.
  * \return 0 on success, -1 on error

@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "spinlock.h"
+
 #define THREADNUM 50
 
 double a =0;
@@ -12,6 +14,7 @@ thread_mutex_t mutex;
 void thread_f()
 {
   thread_mutex_lock(&mutex);
+  //spinlock(&lock);
 
   double local,locala = a;
   local  = log( sqrt(a*a +1 )/exp(2.0 + 0.1*a));
@@ -19,6 +22,7 @@ void thread_f()
   a=  locala +1;
 	//unlock();
   thread_mutex_unlock(&mutex);
+  //spinunlock(&lock);
   return;
 }
 

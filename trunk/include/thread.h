@@ -40,7 +40,7 @@ extern int thread_join(thread_t thread, void **retval);
  */
 extern void thread_exit(void *retval) __attribute__ ((__noreturn__));
 
-typedef struct _thread_mutex * thread_mutex_t;
+typedef struct _usem* thread_mutex_t;
 
 
 /**

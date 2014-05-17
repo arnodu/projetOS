@@ -202,7 +202,7 @@ void switch_to_main_stack()
 int sched_schedule()
 {
     thread_t thread;
-    if(runqueue_isEmpty_safe(rq))
+    if(/*thread_get_num_threads()==0 && */runqueue_isEmpty_safe(rq))
     {//On est le dernier thread
 		return 0;
     }
