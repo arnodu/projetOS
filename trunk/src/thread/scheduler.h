@@ -5,11 +5,6 @@
 
 #include "thread.h"
 
-typedef struct _scheduler* scheduler;
-
-//dit si le scheduler a été initialisé
-int sched_initialized();
-
 //Initialise le scheduler
 //Retourne 0 si succes
 int sched_init();
@@ -17,7 +12,6 @@ int sched_init();
 //Retourne le thread qui est actuellement éxécuté
 //NULL si erreur
 thread_t sched_runningThread();
-
 
 //Ajoute une tache à ordonnanceur
 //0 si tout s'est bien passé
