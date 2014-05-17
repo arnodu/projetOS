@@ -9,7 +9,8 @@ include_directories("${PROJECT_INCLUDE_DIR}")
 file(GLOB_RECURSE thread_files
        "src/*.c"
        "src/*.h"
-       "include/thread.h")
+       "include/thread.h"
+       "include/usemaphore.h")
 
 add_library("thread"
 	${thread_files})

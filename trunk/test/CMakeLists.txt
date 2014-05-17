@@ -7,13 +7,13 @@ foreach(example_fname ${examples})
 	get_filename_component(example ${example_fname} NAME_WE)
  
 	add_executable(${example} ${example_fname})
-	target_link_libraries(${example} thread)
+	target_link_libraries(${example} thread m)
  
 	set(example_pthread ${example}-pthread)
  
 	add_executable(${example_pthread} ${example})
 	set_target_properties(${example_pthread} PROPERTIES COMPILE_FLAGS "-DUSE_PTHREAD")
-	target_link_libraries(${example_pthread} pthread)
+	target_link_libraries(${example_pthread} pthread m)
  
 endforeach()
 
