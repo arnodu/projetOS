@@ -15,7 +15,7 @@
 #include "thread_t.h"
 
 #define THREAD_STACK_SIZE 64*1024
-#define NUM_CPU 2
+#define NUM_CPU 1
 //sysconf( _SC_NPROCESSORS_ONLN )
 
 typedef struct _scheduler* scheduler;
@@ -62,7 +62,7 @@ void sched_clean()
             free(sched->coreStack);*/
 	}
 
-	runqueue_free_safe(rq);
+	runqueue_free(rq);
 	free(main_thread);
 	free(schedTab);
 	free(tidTab);
@@ -104,7 +104,7 @@ int sched_init(){
 	if(schedTab!=NULL)
 		return 0;
 
-	rq = runqueue_init_safe();
+	rq = runqueue_init();
 
 	main_thread = malloc(sizeof(struct _thread_t));
 	main_thread->retval = NULL;
@@ -146,7 +146,7 @@ thread_t sched_runningThread()
 //0 si tout s'est bien passé
 int sched_addThread(thread_t thread)
 {
-	runqueue_push_safe(rq,thread);
+	runqueue_push(rq,thread);
 	return 0;
 }
 
@@ -173,7 +173,7 @@ static void sched_switchToThread(thread_t thread)
 		setcontext(&thread->context);
     if(sched->oldRunning!=NULL)
     {
-        runqueue_push_safe(rq,sched->oldRunning);
+        runqueue_push(rq,sched->oldRunning);
         sched->oldRunning=NULL;
     }
 
@@ -202,11 +202,12 @@ void switch_to_main_stack()
 int sched_schedule()
 {
     thread_t thread;
-    if(/*thread_get_num_threads()==0 && */runqueue_isEmpty_safe(rq))
-    {//On est le dernier thread
-		return 0;
+    while(runqueue_isEmpty(rq))
+    {
+		if(thread_get_num_threads()==0)//On est le dernier thread
+			return 0;
     }
-    thread = runqueue_pop_safe(rq);
+    thread = runqueue_pop(rq);
     sched_switchToThread(thread);
     return 0;
 }

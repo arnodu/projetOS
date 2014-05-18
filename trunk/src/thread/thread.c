@@ -86,6 +86,7 @@ int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 	//makecontext(&(*newthread)->context, (void (*)(void)) func, 1, funcarg);
 	(*newthread)->status = READY;
 
+
 	res = sched_addThread(*newthread);
 	if(res != 0)//Erreur: sched_addThread
 		return -1;
@@ -94,6 +95,8 @@ int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 
 	return 0;
 }
+
+
 
 int thread_yield(void)
 {
