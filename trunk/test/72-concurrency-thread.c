@@ -26,8 +26,6 @@ void thread_f()
   return;
 }
 
-extern int scheduler_spinlock;
-
 int main(void)
 {
   thread_mutex_init(&mutex);
@@ -52,7 +50,6 @@ int main(void)
   }
   thread_mutex_destroy(&mutex);
   printf("%g \n", a);
-    //printf("%d\n", scheduler_spinlock);
   //spinlock(&scheduler_spinlock);
   return 0;
 }

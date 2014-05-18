@@ -9,6 +9,7 @@
 #include <linux/sched.h>
 #include <valgrind/valgrind.h>
 #include <sys/syscall.h>
+#include <pthread.h>
 
 #include "runqueue.h"
 #include "scheduler.h"
@@ -21,30 +22,32 @@
 typedef struct _scheduler* scheduler;
 
 static struct _scheduler* schedTab = NULL;
-static int* tidTab = NULL;
+static pthread_t* coreThreads_tab = NULL;
 
 static thread_t main_thread;
 
-extern int scheduler_spinlock;
+extern pthread_mutex_t scheduler_mutex;
+//extern int scheduler_spinlock;
+
+thread_t oldRunning;
 
 struct _scheduler
 {
     thread_t running;   //Thread courant
-    thread_t oldRunning;
     ucontext_t context_detached;
     int context_detached_valgrind;
-    void * coreStack;
+    pthread_t coreThread;
 };
 
 static runqueue_t rq;
 
 static int get_corenum()
 {
-    int tid = syscall(SYS_gettid);//gettid
+    pthread_t self = pthread_self();
     int i;
     for(i=0; i<NUM_CPU; i++)
     {
-        if(tid==tidTab[i])
+        if(self==coreThreads_tab[i])
             return i;
     }
     assert(0);
@@ -53,10 +56,10 @@ static int get_corenum()
 void sched_push_oldrunning()
 {
     scheduler sched = &schedTab[get_corenum()];
-    if(sched->oldRunning!=NULL)
+    if(oldRunning!=NULL)
     {
-        runqueue_push_safe(rq,sched->oldRunning);
-        sched->oldRunning=NULL;
+        runqueue_push_safe(rq,oldRunning);
+        oldRunning=NULL;
     }
 }
 
@@ -78,16 +81,18 @@ void sched_clean()
     runqueue_free_safe(rq);
     free(main_thread);
     free(schedTab);
-    free(tidTab);
+    free(coreThreads_tab);
 }
 
 static int sched_init_core(int corenum)
 {
-    tidTab[corenum] = syscall(SYS_gettid);//gettid
+	pthread_mutex_lock(&scheduler_mutex);
+
+    coreThreads_tab[corenum] = pthread_self();
 
     scheduler s = &schedTab[corenum];
 
-    s->oldRunning = NULL;
+    oldRunning = NULL;
 
     //Initialisation du contexte detached (pour libérer les piles au exit)
     getcontext(&s->context_detached);
@@ -120,6 +125,8 @@ int sched_init()
     if(schedTab!=NULL)
         return 0;
 
+	pthread_mutex_init(&scheduler_mutex,NULL);
+
     rq = runqueue_init_safe();
 
     main_thread = malloc(sizeof(struct _thread_t));
@@ -130,22 +137,20 @@ int sched_init()
     main_thread->context.uc_link = NULL;
     main_thread->waiting = NULL;
 
-    assert(schedTab==NULL && tidTab==NULL);
+    assert(schedTab==NULL && coreThreads_tab==NULL);
     schedTab = malloc(sizeof(struct _scheduler)*NUM_CPU);
-    tidTab = malloc(sizeof(int)*NUM_CPU);
+    coreThreads_tab = malloc(sizeof(pthread_t)*NUM_CPU);
     int i;
     for(i=1; i<NUM_CPU; i++)
     {
-        tidTab[i]=-1;
+        coreThreads_tab[i]=-1;
     }
 
     //atexit(sched_clean);
 
     for(i=1; i<NUM_CPU; i++)
     {
-        //TODO se souvenir des stacks pour les libérer
-        schedTab[i].coreStack = malloc(THREAD_STACK_SIZE);
-        int res = clone(sched_init_core, schedTab[i].coreStack+THREAD_STACK_SIZE,  CLONE_THREAD|SIGCHLD | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_VM, (void*) i);
+        int res = pthread_create(&coreThreads_tab[i],NULL,(void* (*)(void*))sched_init_core,(void*) i);
         assert(res!=-1);
     }
     sched_init_core(0);
@@ -197,7 +202,7 @@ int sched_waitThread(thread_t thread)
 {
     if(thread->status != TERMINATED)
     {
-        thread_t self = thread_self();
+        thread_t self = sched_runningThread();
         self->status = WAITING;
         thread->waiting = self;
         if(0!=sched_schedule())
@@ -215,21 +220,19 @@ void switch_to_main_stack()
 int sched_schedule()
 {
     scheduler sched = &schedTab[get_corenum()];
+
     thread_t thread;
     while(runqueue_isEmpty_safe(rq))
-    {
-        spinunlock(&scheduler_spinlock);
-        /*while(runqueue_isEmpty_safe(rq))*/{usleep(1000);}
-        spinlock(&scheduler_spinlock);
-        if(!runqueue_isEmpty_safe(rq)){}
-        else if(sched->running==NULL) {}
-        else if(sched->running == main_thread && thread_get_num_threads()<=0)
+    {//Si on a rien dans la runqueue on attend qu'il y ait quelque chose sauf si on est le dernier thread
+        pthread_mutex_unlock(&scheduler_mutex);
+        usleep(1000);
+        pthread_mutex_lock(&scheduler_mutex);
+        if(thread_get_num_threads()<=0)
         {
-            return 0;
-        }
-        else if(sched->running->status!=TERMINATED)
-        {
-            return 0;
+        	if(sched->running == main_thread)
+				return 0;
+			else
+				return 0;;
         }
     }
 
@@ -241,30 +244,25 @@ int sched_schedule()
 int sched_schedule_and_add()
 {
     scheduler sched = &schedTab[get_corenum()];
+    assert(sched->running->status!=TERMINATED);
     thread_t thread;
-    while(runqueue_isEmpty(rq))
-    {
-        if(sched->running == main_thread)
-        {
-            if(thread_get_num_threads()<=0)//On est le dernier thread
-                return 0;
-        }
-        else if(sched->running->status!=TERMINATED)
-            return 0;
+    if(runqueue_isEmpty_safe(rq))
+    {//Si rien dasn la runqueue on réordonnance le meme thread
+        return 0;
     }
 
-    assert(sched->oldRunning==NULL);
-    sched->oldRunning = thread_self();
+    assert(oldRunning==NULL);
+    oldRunning = sched_runningThread();
 
 
-    thread = runqueue_pop_safe(rq);
+    thread = runqueue_pop(rq);
     sched_switchToThread(thread);
     return 0;
 }
 
 void sched_detach_and_schedule_f()
 {
-    thread_t self = thread_self();
+    thread_t self = sched_runningThread();
     if(self->stack!=NULL)
     {
         VALGRIND_STACK_DEREGISTER(self->valgrind_stackid);
@@ -277,7 +275,7 @@ void sched_detach_and_schedule()
 {
     scheduler sched = &schedTab[get_corenum()];
 
-    if(thread_self()->stack!=NULL)
+    if(sched_runningThread()->stack!=NULL)
     {
         //Si on est pas dans le contexte main, il faut aller dans un autre contexte pour libérer la pile
         makecontext(&sched->context_detached,(void(*)(void))sched_detach_and_schedule_f,0);
