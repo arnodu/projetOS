@@ -15,7 +15,7 @@
 #include "thread_t.h"
 
 #define THREAD_STACK_SIZE 64*1024
-#define NUM_CPU 1
+#define NUM_CPU 2
 //sysconf( _SC_NPROCESSORS_ONLN )
 
 typedef struct _scheduler* scheduler;
@@ -24,6 +24,8 @@ static struct _scheduler* schedTab = NULL;
 static int* tidTab = NULL;
 
 static thread_t main_thread;
+
+extern int scheduler_spinlock;
 
 struct _scheduler
 {
@@ -105,6 +107,7 @@ static int sched_init_core(int corenum)
     {
         s->running = NULL;
         sched_schedule();
+        assert(0);
     }
 
     return 0;
@@ -136,13 +139,13 @@ int sched_init()
         tidTab[i]=-1;
     }
 
-    atexit(sched_clean);
+    //atexit(sched_clean);
 
     for(i=1; i<NUM_CPU; i++)
     {
         //TODO se souvenir des stacks pour les libérer
         schedTab[i].coreStack = malloc(THREAD_STACK_SIZE);
-        int res = clone(sched_init_core, schedTab[i].coreStack+THREAD_STACK_SIZE,  SIGCHLD | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_VM, (void*) i);
+        int res = clone(sched_init_core, schedTab[i].coreStack+THREAD_STACK_SIZE,  CLONE_THREAD|SIGCHLD | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_VM, (void*) i);
         assert(res!=-1);
     }
     sched_init_core(0);
@@ -207,7 +210,6 @@ void switch_to_main_stack()
 {
     setcontext(&main_thread->context);
 }
-extern int lock;
 //Demande au scheduler de swapper sur le prochain thread
 //retourne 0 si tout s'est bien passé
 int sched_schedule()
@@ -216,9 +218,9 @@ int sched_schedule()
     thread_t thread;
     while(runqueue_isEmpty_safe(rq))
     {
-        spinunlock(&lock);
-        while(runqueue_isEmpty_safe(rq)){}
-        spinlock(&lock);
+        spinunlock(&scheduler_spinlock);
+        /*while(runqueue_isEmpty_safe(rq))*/{usleep(1000);}
+        spinlock(&scheduler_spinlock);
         if(!runqueue_isEmpty_safe(rq)){}
         else if(sched->running==NULL) {}
         else if(sched->running == main_thread && thread_get_num_threads()<=0)
@@ -226,7 +228,9 @@ int sched_schedule()
             return 0;
         }
         else if(sched->running->status!=TERMINATED)
+        {
             return 0;
+        }
     }
 
     thread = runqueue_pop(rq);

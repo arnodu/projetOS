@@ -12,6 +12,9 @@
 
 static int num_threads = 0;
 
+int scheduler_spinlock = 0;
+
+
 thread_t thread_self(void)
 {
 	sched_init();
@@ -60,7 +63,10 @@ thread_t thread_s_init()
 static void function_wrapper(void* (*func)(void*), void* funcarg)
 {
     sched_push_oldrunning();
+    spinunlock(&scheduler_spinlock);
+
 	void* res = func(funcarg);
+	spinlock(&scheduler_spinlock);
 	thread_exit(res);
 }
 
@@ -76,6 +82,8 @@ int _makecontext(thread_t thread, void* (*func)(void*), void* funcarg)
 
 int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 {
+spinlock(&scheduler_spinlock);
+
 	int res=sched_init();
 	if(res != 0)//Erreur: sched_init_clone
 		return -1;
@@ -91,15 +99,23 @@ int thread_create(thread_t *newthread, void *(*func)(void *), void *funcarg)
 	res = sched_addThread(*newthread);
 	if(res != 0)//Erreur: sched_addThread
 		return -1;
-    //thread_yield();
+    //thread_yield_unlocked_unlocked();
     num_threads++;
+
+    spinunlock(&scheduler_spinlock);
 
 	return 0;
 }
 
+int thread_yield()
+{
+    spinlock(&scheduler_spinlock);
+    int res = thread_yield_unlocked();
+    spinunlock(&scheduler_spinlock);
+    return res;
+}
 
-
-int thread_yield(void)
+int thread_yield_unlocked(void)
 {
 	sched_init();
 	int res;
@@ -111,6 +127,8 @@ int thread_yield(void)
 
 int thread_join(thread_t thread, void **retval)
 {
+    spinlock(&scheduler_spinlock);
+
 	sched_init();
 
 	sched_waitThread(thread);
@@ -126,11 +144,10 @@ int thread_join(thread_t thread, void **retval)
 		free(thread);
 	}
 
+	spinunlock(&scheduler_spinlock);
+
 	return 0;
 }
-
-extern int lock;
-
 void thread_exit(void *retval)
 {
 	sched_init();
@@ -149,8 +166,8 @@ void thread_exit(void *retval)
 	//On de mande au scheduler de changer de thread sans rajouter celui ci
 	sched_detach_and_schedule();
 	//A partir d'ici on est dans le main apres que tous les threads soient terminés
-	spinunlock(&lock);
-	exit(0);
+	spinunlock(&scheduler_spinlock);
+	//exit(0);
 }
 
 int thread_get_num_threads()

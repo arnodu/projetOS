@@ -10,26 +10,23 @@
 double a =0;
 
 thread_mutex_t mutex;
-int lock = 0;
 
 void thread_f()
 {
-    spinunlock(&lock);
   //thread_mutex_lock(&mutex);
   //spinlock(&lock);
 
   double local,locala = a;
   local  = log( sqrt(a*a +1 )/exp(2.0 + 0.1*a));
-    spinlock(&lock);
   thread_yield();
-  spinunlock(&lock);
   a=  locala +1;
 
   //thread_mutex_unlock(&mutex);
   //spinunlock(&lock);
-  spinlock(&lock);
   return;
 }
+
+extern int scheduler_spinlock;
 
 int main(void)
 {
@@ -40,9 +37,7 @@ int main(void)
 
   for(i = 0; i< THREADNUM; i++)
   {
-    spinlock(&lock);
     err = thread_create(&thread[i], (void *)thread_f, NULL);
-    spinunlock(&lock);
     if(err != 0)
     {
       fprintf(stderr, "Can't create thread %d", i);
@@ -52,13 +47,12 @@ int main(void)
   for(i = 0; i< THREADNUM; i++)
   {
     //thread_mutex_lock(&mutex);
-	spinlock(&lock);
     thread_join(thread[i], &b);
-	spinunlock(&lock);
 	//thread_mutex_unlock(&mutex);
   }
   thread_mutex_destroy(&mutex);
   printf("%g \n", a);
-  spinlock(&lock);
+    //printf("%d\n", scheduler_spinlock);
+  //spinlock(&scheduler_spinlock);
   return 0;
 }

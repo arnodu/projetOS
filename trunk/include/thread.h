@@ -22,7 +22,7 @@ extern int thread_create(thread_t *newthread, void *(*func)(void *), void *funca
 
 /* passer la main à un autre thread.
  */
-extern int thread_yield(void);
+extern int thread_yield_unlocked(void);
 
 /* attendre la fin d'exécution d'un thread.
  * la valeur renvoyée par le thread est placée dans *retval.
