@@ -51,7 +51,7 @@ int usem_wait(usem_t *sem)
         }
         else
         {
-            (*sem)->permits++;
+            (*sem)->permits--;
             spinunlock(&((*sem)->spinlock));
             break;
         }
@@ -66,7 +66,7 @@ int usem_post(usem_t * sem)
         thread_t current = runqueue_pop((*sem)->waiting);
         sched_addThread(current);
     }
-    (*sem)->permits--;
+    (*sem)->permits++;
     spinunlock(&(*sem)->spinlock);
 }
 
@@ -87,11 +87,13 @@ int thread_mutex_destroy(thread_mutex_t * mutex)
 
 int thread_mutex_lock(thread_mutex_t *mutex)
 {
+    assert((*mutex)->permits<=1);
     return usem_wait(mutex);
 }
 
 
 int thread_mutex_unlock(thread_mutex_t *mutex)
 {
+    assert((*mutex)->permits<=1);
     return usem_post(mutex);
 }

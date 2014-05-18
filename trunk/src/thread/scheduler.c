@@ -47,6 +47,15 @@ static int get_corenum()
 	assert(0);
 }
 
+void sched_push_oldrunning(){
+scheduler sched = &schedTab[get_corenum()];
+    if(sched->oldRunning!=NULL)
+    {
+        runqueue_push(rq,sched->oldRunning);
+        sched->oldRunning=NULL;
+    }
+}
+
 void sched_clean()
 {
 	int i;
@@ -88,6 +97,7 @@ static int sched_init_core(int corenum)
 	{
 		s->running = main_thread;
 		swapcontext(&main_thread->context,&main_thread->context);
+		sched_push_oldrunning();
     }
 	else
 	{
@@ -171,11 +181,7 @@ static void sched_switchToThread(thread_t thread)
 		swapcontext(&oldRunning->context,&thread->context);
 	else
 		setcontext(&thread->context);
-    if(sched->oldRunning!=NULL)
-    {
-        runqueue_push(rq,sched->oldRunning);
-        sched->oldRunning=NULL;
-    }
+    sched_push_oldrunning();
 
 }
 
@@ -201,12 +207,18 @@ void switch_to_main_stack()
 //retourne 0 si tout s'est bien passé
 int sched_schedule()
 {
+    scheduler sched = &schedTab[get_corenum()];
     thread_t thread;
     while(runqueue_isEmpty(rq))
     {
-		if(thread_get_num_threads()==0)//On est le dernier thread
+    if(sched->running == main_thread){
+        if(thread_get_num_threads()<=0)//On est le dernier thread
 			return 0;
+			}
+    else if(sched->running->status!=TERMINATED)
+        return 0;
     }
+
     thread = runqueue_pop(rq);
     sched_switchToThread(thread);
     return 0;
@@ -214,8 +226,24 @@ int sched_schedule()
 
 int sched_schedule_and_add(){
     scheduler sched = &schedTab[get_corenum()];
+    thread_t thread;
+    while(runqueue_isEmpty(rq))
+    {
+    if(sched->running == main_thread){
+        if(thread_get_num_threads()<=0)//On est le dernier thread
+			return 0;
+			}
+    else if(sched->running->status!=TERMINATED)
+        return 0;
+    }
+
+    assert(sched->oldRunning==NULL);
     sched->oldRunning = thread_self();
-    sched_schedule();
+
+
+    thread = runqueue_pop(rq);
+    sched_switchToThread(thread);
+    return 0;
 }
 
 void sched_detach_and_schedule_f()
@@ -237,6 +265,7 @@ void sched_detach_and_schedule()
 	{//Si on est pas dans le contexte main, il faut aller dans un autre contexte pour libérer la pile
 		makecontext(&sched->context_detached,(void(*)(void))sched_detach_and_schedule_f,0);
 		swapcontext(&sched->running->context, &sched->context_detached);
+		sched_push_oldrunning();
 	}
 	else//Si on est le main il n'y a rien à faire de plus que réeordonnancer
 		sched_schedule();

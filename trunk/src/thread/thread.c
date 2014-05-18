@@ -8,7 +8,7 @@
 #include <valgrind/valgrind.h>
 #include <assert.h>
 
-#define THREAD_STACK_SIZE 64*1024
+#define THREAD_STACK_SIZE 64*1024*1024
 
 static int num_threads = 0;
 
@@ -59,6 +59,7 @@ thread_t thread_s_init()
 //Wrap la fonction donnée en paramètre pour que la fonction retourne bien avec thread_exit
 static void function_wrapper(void* (*func)(void*), void* funcarg)
 {
+    sched_push_oldrunning();
 	void* res = func(funcarg);
 	thread_exit(res);
 }
@@ -140,8 +141,8 @@ void thread_exit(void *retval)
         sched_addThread(thread->waiting);
         thread->waiting->status = READY;
         thread->waiting = NULL;
-        num_threads--;
     }
+    num_threads--;
 
 	//On de mande au scheduler de changer de thread sans rajouter celui ci
 	sched_detach_and_schedule();
