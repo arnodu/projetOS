@@ -58,5 +58,6 @@ add_test("switch-many-join-test"
 add_test("fibo_10_test"
   ${EXECUTABLE_OUTPUT_PATH}/51-fibonacci 10)
   
-#add_test("81-preemption"
-#  ${EXECUTABLE_OUTPUT_PATH}/preemption)
+add_test("preemption-test"
+  ${EXECUTABLE_OUTPUT_PATH}/81-preemption)
+  
