@@ -21,9 +21,11 @@ do
 	do 
 		v=$(($v + $(bin/./31-switch-many $j 10 | cut -d " " -f 6)))
 		w=$(($w + $(bin/./31-switch-many-pthread $j 10 | cut -d " " -f 6)))
-	done	
-	echo "$j $v" >> data/time_thread
-	echo "$j $w" >> data/time_thread_pthread
+	done
+	vv=$(($v / $iter))	
+	ww=$(($w / $iter))	
+	echo "$j $vv" >> data/time_thread
+	echo "$j $ww" >> data/time_thread_pthread
 	
 done
 
@@ -38,11 +40,13 @@ do
 		v=$(($v + $(bin/./31-switch-many 10 $j | cut -d " " -f 6)))
 		w=$(($w + $(bin/./31-switch-many-pthread 10 $j | cut -d " " -f 6)))
 	done	
-	echo "$j $v" >> data/time_yield
-	echo "$j $w" >> data/time_yield_pthread
+	vv=$(($v / $iter))	
+	ww=$(($w / $iter))	
+	echo "$j $vv" >> data/time_yield
+	echo "$j $ww" >> data/time_yield_pthread
 done
 
-echo "temps d'execution de $iter itérations de 31-switch-many de fibo"
+echo "temps d'execution de $iter itérations de fibo"
 
 for i in `seq 1 20`
 do
@@ -60,8 +64,10 @@ do
 	done
 	b=$(date +%s.%N)		
 	d=$(echo "$b - $a" | bc)
-	echo "$i $c" >> data/time_fibo
-	echo "$i $d" >> data/time_fibo_pthread
+	cc=$(echo "$c / $iter" | bc -l)
+	dd=$(echo "$d / $iter" | bc -l)
+	echo "$i $cc" >> data/time_fibo
+	echo "$i $dd" >> data/time_fibo_pthread
 done
 
 echo "tracé des courbes"
@@ -77,12 +83,21 @@ fi
 set terminal png
 set key on inside left top
 set output "img/fibo.png"
-plot "data/time_fibo" with point, "data/time_fibo_pthread" with point
+set ylabel "Temps d'éxecution(s)" textcolor lt 1
+set xlabel "fibo(x)" textcolor lt 1
+set title "Temps d'execution de fibo en fonction de l'entrée" textcolor lt 1
+plot "data/time_fibo" with lines, "data/time_fibo_pthread" with lines
 
 set output "img/yield.png"
-plot "data/time_yield" with point, "data/time_yield_pthread" with point
+set ylabel "Temps d'éxecution(µs)" textcolor lt 1
+set xlabel "nombre de yield fait" textcolor lt 1
+set title "Temps d'execution de 31-switch-many à nombre de yield variables" textcolor lt 1
+plot "data/time_yield" with lines, "data/time_yield_pthread" with lines
 
 set output "img/thread.png"
-plot "data/time_thread" with point, "data/time_thread_pthread" with point
+set ylabel "Temps d'éxecution(µs)" textcolor lt 1
+set xlabel "nombre de thread créés" textcolor lt 1
+set title "Temps d'execution de 31-switch-many à nombre de thread variables" textcolor lt 1
+plot "data/time_thread" with lines, "data/time_thread_pthread" with lines
 
 __EOF
