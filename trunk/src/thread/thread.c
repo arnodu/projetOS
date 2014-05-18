@@ -129,6 +129,8 @@ int thread_join(thread_t thread, void **retval)
 	return 0;
 }
 
+extern int lock;
+
 void thread_exit(void *retval)
 {
 	sched_init();
@@ -147,6 +149,7 @@ void thread_exit(void *retval)
 	//On de mande au scheduler de changer de thread sans rajouter celui ci
 	sched_detach_and_schedule();
 	//A partir d'ici on est dans le main apres que tous les threads soient terminés
+	spinunlock(&lock);
 	exit(0);
 }
 
